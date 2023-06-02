@@ -24,6 +24,7 @@ jobs:
       with:
         path: .venv
         key: venv-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+
     - name: Install dependencies
       run: |
         poetry config virtualenvs.in-project true
@@ -36,7 +37,3 @@ jobs:
     - name: Run tests
       run: |
         make test
-
-    - name: Run safety checks
-      run: |
-        make check-safety

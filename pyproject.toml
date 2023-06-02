@@ -8,7 +8,7 @@ name = "pytorch-finufft"
 version = "0.0.0"
 description = "Pytorch bindings for the FINUFFT Library"
 readme = "README.md"
-authors = ["Flatiron Institute <bward@flatironinstitute.org>"]
+authors = ["Matthew Meeker <mmeeker@flatironinstitute.org>, Michael Eickenberg <meickenberg@flatironinstitute.org>, Brian Ward <bward@flatironinstitute.org>"]
 license = "MIT"
 repository = "https://github.com/flatironinstitute/pytorch-finufft"
 homepage = "https://github.com/flatironinstitute/pytorch-finufft"
@@ -17,7 +17,7 @@ homepage = "https://github.com/flatironinstitute/pytorch-finufft"
 keywords = []  #! Update me
 
 # Pypi classifiers: https://pypi.org/classifiers/
-classifiers = [  #! Update me
+classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
@@ -34,7 +34,7 @@ python = "^3.9"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.1"
-black = {version = "^21.10b0", allow-prereleases = true}
+black = {version = "^22.3.0", allow-prereleases = true}
 darglint = "^1.8.1"
 isort = {extras = ["colors"], version = "^5.10.1"}
 mypy = "^0.910"

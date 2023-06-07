@@ -12,7 +12,7 @@ Ns = [10, 100, 1000]
 
 
 @pytest.mark.parametrize(
-    ("c"),
+    "c",
     [
         (standard_normal(size=Ns[0]) + 1j * standard_normal(size=Ns[0])),
         (standard_normal(size=Ns[1]) + 1j * standard_normal(size=Ns[1])),
@@ -48,7 +48,7 @@ def test_1d_t1_forward_CPU(c: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    ("c"),
+    "c",
     [
         (standard_normal(size=Ns[0])),
         (standard_normal(size=Ns[1])),

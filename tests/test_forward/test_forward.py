@@ -19,9 +19,9 @@ Ns = [10, 100, 1000]
         (standard_normal(size=Ns[2]) + 1j * standard_normal(size=Ns[2])),
     ],
 )
-def test_1d_t1_forward_CPU(c: np.ndarray) -> None:
+def test_1d_forward_CPU(c: np.ndarray) -> None:
     """
-    Basic test cases for 1d Type 1 against Pytorch and FINUFFT
+    Basic test cases for 1d Type 1 against Pytorch and Numpy/ Scipy
 
     Tests against existing (uniform/ standard) FFT implementations by setting up a uniform grid for FINUFFT.
     """
@@ -32,18 +32,18 @@ def test_1d_t1_forward_CPU(c: np.ndarray) -> None:
     against_scipy = torch.from_numpy(scipy.fft.fft(c))
     against_numpy = torch.from_numpy(np.fft.fft(c))
 
-    finufft_out = pytorch_finufft.functional.finufft1D1.forward(
+    finufft1D1_out = pytorch_finufft.functional.finufft1D1.forward(
         torch.from_numpy(2 * np.pi * np.arange(0, 1, 1 / N)), ctens, N
     )
 
     assert (
-        torch.linalg.norm(finufft_out - against_torch) / N
+        torch.linalg.norm(finufft1D1_out - against_torch) / N
     ) == pytest.approx(0, abs=1e-05, rel=1e-06)
     assert (
-        torch.linalg.norm(finufft_out - against_scipy) / N
+        torch.linalg.norm(finufft1D1_out - against_scipy) / N
     ) == pytest.approx(0, abs=1e-05, rel=1e-06)
     assert (
-        torch.linalg.norm(finufft_out - against_numpy) / N
+        torch.linalg.norm(finufft1D1_out - against_numpy) / N
     ) == pytest.approx(0, abs=1e-05, rel=1e-06)
 
 

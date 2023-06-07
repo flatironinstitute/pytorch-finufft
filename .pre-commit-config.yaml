@@ -21,6 +21,14 @@ repos:
 
   - repo: local
     hooks:
+      - id: codestyle
+        name: codestyle
+        entry: make codestyle
+        types: [python]
+        language: system
+
+  - repo: local
+    hooks:
       - id: isort
         name: isort
         entry: poetry run isort --settings-path pyproject.toml

@@ -52,7 +52,7 @@ pytest-cov = "^3.0.0"
 [tool.black]
 # https://github.com/psf/black
 target-version = ["py39"]
-line-length = 88
+line-length = 80
 color = true
 
 exclude = '''

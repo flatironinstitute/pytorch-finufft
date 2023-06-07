@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Any, Literal
+from typing import Union
 
 import finufft
 import torch
@@ -15,14 +15,18 @@ class finufft1D1(torch.autograd.Function):
 
     @staticmethod
     def forward(
-        x, c, n_modes=None, out=None, eps=1e-06, isign=-1, modeord=1, **kwargs
+        points: torch.Tensor,
+        values: torch.Tensor,
+        output_shape: Union[int, None] = None,
+        out: Union[torch.Tensor, None] = None,
+        fftshift=False,
+        **finufftkwargs,
     ) -> torch.Tensor:
         """
-        Forward method, returns the `finufft.nufft1d1` call on the inputs, ie, the 1D type-1 (nonuniform to uniform)
-        complex NUFFT.
+        Evaluates the Type 1 NUFFT on the inputs.
 
         NOTE: By default here, the ordering is set to match that of Pytorch, Numpy, and Scipy's FFT implementations.
-            By default in FINUFFT, `modeord` would be set to `0` instead.
+            To match the mode ordering native to FINUFFT, set `fftshift = True`
         ```
                 M-1
         f[k1] = SUM c[j] exp(+/-i k1 x(j))
@@ -30,36 +34,42 @@ class finufft1D1(torch.autograd.Function):
 
             for -N1/2 <= k1 <= (N1-1)/2
         ```
-
-        Args:
-            x (float[M]): nonuniform points, valid only in [-3pi, 3pi]
-            c (complex[M]): source strengths per point in `x`
-            n_modes (integer, optional): number of uniform Fourier modes requested. May be even or odd
-            out (complex[N1] or complex[ntransf, N1], optional): output array for Fourier mode values.
-                If `n_modes`
-
-            isign (int, optional): if non-negative, uses positive sign in exponential, otherwise negative sign.
-            modeord (int, optional): if `0`, frequency indices are in increasing ordering, otherwise frequency
-                indices are ordered as in the usual FFT, increasing from zero then jumping to negative indices
-                halfway along.
+        Args;
+            TODO
 
         Returns:
             torch.Tensor(complex[N1] or complex[ntransf, N1]): The resulting array
 
         """
 
-        if n_modes is None and out is None:
-            n_modes = len(c)
+        if out is not None:
+            raise ValueError("In-place not implemented")
 
-        return torch.from_numpy(
-            finufft.nufft1d1(
-                x, c, n_modes, out, eps, isign=isign, modeord=modeord, **kwargs
-            )
+        n_modes = output_shape if output_shape is None else len(values)
+
+        # TODO -- these are probably being "double processed". Should be some obvious way around this
+        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
+        # TODO -- isign should be left alone in the case we do not fftshift
+        modeord = 0 if fftshift else 1
+
+        # TODO -- probably dimension and shape match checks?
+        # finufftkwags should take in also eps, isign, ...
+
+        # tensor --> numpy for finufft --> tensor
+        nufft_out = finufft.nufft1d1(
+            points.item(),
+            values.item(),
+            n_modes,
+            isign=isign,
+            modeord=modeord,
+            **finufftkwargs,
         )
+
+        return torch.from_numpy(nufft_out)
 
     @staticmethod
     def setup_context(ctx, inputs, outputs):
-        return 0
+        raise ValueError("TBD")
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -67,4 +77,117 @@ class finufft1D1(torch.autograd.Function):
         Implements gradients for backward mode automatic differentiation
         """
 
-        return 0
+        raise ValueError("TBD")
+
+
+class finufft1D2(torch.autograd.Function):
+    """
+    FINUFFT 1d Problem type 2
+    """
+
+    @staticmethod
+    def forward(
+        points: torch.Tensor,
+        targets: torch.Tensor,
+        out: Union[torch.Tensor, None] = None,
+        fftshift: bool = False,
+        **finufftkwargs,
+    ) -> torch.Tensor:
+        """
+        Evaluates Type 2 NUFFT on inputs
+
+        ```
+        c[j] = SUM f[k1] exp(+/-i k1 x(j))
+               k1
+
+            for j = 0, ..., M-1, where the sum is over -N1/2 <= k1 <= (N1-1)/2
+        ```
+
+        Args;
+            TODO
+
+        Returns:
+            torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
+        """
+
+        if out is not None:
+            raise ValueError("In-place not implemented")
+
+        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
+        modeord = 0 if fftshift else 1
+
+        # TODO -- size checks and so on for the tensors; finufft will handle the rest of these
+
+        nufft_out = finufft.nufft1d2(
+            points.item(),
+            targets.item(),
+            isign=isign,
+            modeord=modeord,
+            **finufftkwargs,
+        )
+
+        return torch.from_numpy(nufft_out)
+
+    @staticmethod
+    def setup_context(_):
+        raise ValueError("TBD")
+
+    @staticmethod
+    def backward(_):
+        raise ValueError("TBD")
+
+
+class finufft1D3(torch.autograd.Function):
+    """
+    FINUFFT 1d Problem type 3
+    """
+
+    @staticmethod
+    def forward(
+        points: torch.Tensor,
+        values: torch.Tensor,
+        targets: torch.Tensor,
+        out: Union[torch.Tensor, None] = None,
+        fftshift: bool = False,
+        **finufftkwargs,
+    ):
+        """
+        Evaluates Type 3 NUFFT on inputs
+
+        ```
+            M-1
+        f[k] = SUM c[j] exp(+/-i s[k] x[j]),
+            j=0
+
+            for k = 0, ..., N-1
+        ```
+        Args: TODO
+
+        Returns:
+            torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
+        """
+
+        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
+        modeord = 0 if fftshift else 1
+
+        if out is not None:
+            raise ValueError("In-place not implemented")
+
+        nufft_out = finufft.nufft1d3(
+            points.item(),
+            values.item(),
+            targets.item(),
+            isign=isign,
+            modeord=modeord,
+            **finufftkwargs,
+        )
+
+        return torch.from_numpy(nufft_out)
+
+    @staticmethod
+    def setup_context(_):
+        raise ValueError("TBD")
+
+    @staticmethod
+    def backward(_):
+        raise ValueError("TBD")

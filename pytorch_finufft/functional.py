@@ -55,10 +55,12 @@ class finufft1D1(torch.autograd.Function):
         # TODO -- probably dimension and shape match checks?
         # finufftkwags should take in also eps, isign, ...
 
+        # Type checks -- which need to be complex vs. not, etc.
+
         # tensor --> numpy for finufft --> tensor
         nufft_out = finufft.nufft1d1(
-            points.item(),
-            values.item(),
+            points.numpy(),
+            values.numpy(),
             n_modes,
             isign=isign,
             modeord=modeord,
@@ -119,8 +121,8 @@ class finufft1D2(torch.autograd.Function):
         # TODO -- size checks and so on for the tensors; finufft will handle the rest of these
 
         nufft_out = finufft.nufft1d2(
-            points.item(),
-            targets.item(),
+            points.numpy(),
+            targets.numpy(),
             isign=isign,
             modeord=modeord,
             **finufftkwargs,
@@ -167,11 +169,13 @@ class finufft1D3(torch.autograd.Function):
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
         """
 
+        if out is not None:
+            raise ValueError("In-place not implemented")
+
         isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
         modeord = 0 if fftshift else 1
 
-        if out is not None:
-            raise ValueError("In-place not implemented")
+        # TODO -- size checks and so on for the tensors; finufft will handle the rest of these
 
         nufft_out = finufft.nufft1d3(
             points.item(),

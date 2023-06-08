@@ -28,12 +28,14 @@ def test_1d_t1_forward_CPU(c: np.ndarray) -> None:
     N = len(c)
     ctens = torch.from_numpy(c)
 
+    print(ctens.dtype)
+
     against_torch = torch.fft.fft(ctens)
     against_scipy = torch.from_numpy(scipy.fft.fft(c))
     against_numpy = torch.from_numpy(np.fft.fft(c))
 
     finufft1D1_out = pytorch_finufft.functional.finufft1D1.forward(
-        2 * np.pi * torch.arange(0, 1, 1 / N), ctens, N
+        2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64), ctens, N
     )
 
     assert type(against_torch) == type(ctens)
@@ -51,8 +53,8 @@ def test_1d_t1_forward_CPU(c: np.ndarray) -> None:
 @pytest.mark.parametrize(
     "c",
     [
-        (standard_normal(size=Ns[0])),
-        (standard_normal(size=Ns[1])),
+        (standard_normal(size=Ns[0]) + 1j * standard_normal(size=Ns[0])),
+        (standard_normal(size=Ns[1]) + 1j * standard_normal(size=Ns[1])),
     ],
 )
 def test_1d_t2_forward_CPU(c: torch.Tensor):
@@ -67,9 +69,16 @@ def test_1d_t2_forward_CPU(c: torch.Tensor):
     against_numpy = np.fft.fft(c)
 
     finufft_out = pytorch_finufft.functional.finufft1D2.forward(
-        2 * np.pi * torch.arange(0, 1, 1 / N), ctens
+        2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64), ctens
     )
 
-    # out = pytorch_finufft.functionl.finufft1D2.forward(
-    # 2 * np.pi * np.arange(0, 1, 1/N), c
-    # )
+    assert type(against_torch) == type(ctens)
+    assert (
+        torch.linalg.norm(finufft_out - against_torch) / N
+    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+    assert (
+        torch.linalg.norm(finufft_out - against_scipy) / N
+    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+    assert (
+        torch.linalg.norm(finufft_out - against_numpy) / N
+    ) == pytest.approx(0, abs=1e-05, rel=1e-06)

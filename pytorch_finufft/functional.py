@@ -147,7 +147,7 @@ class finufft1D2(torch.autograd.Function):
         isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
         modeord = 0 if fftshift else 1
 
-        # TODO -- size checks and so on for the tensors; finufft will handle the rest of these
+        # TODO -- size checks and so on for the tensors
 
         nufft_out = finufft.nufft1d2(
             points.numpy(),
@@ -217,9 +217,9 @@ class finufft1D3(torch.autograd.Function):
         # TODO -- size checks and so on for the tensors; finufft will handle the rest of these
 
         nufft_out = finufft.nufft1d3(
-            points.item(),
-            values.item(),
-            targets.item(),
+            points.numpy(),
+            values.numpy(),
+            targets.numpy(),
             isign=isign,
             modeord=modeord,
             **finufftkwargs,

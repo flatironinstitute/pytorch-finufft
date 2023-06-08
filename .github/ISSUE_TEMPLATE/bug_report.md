@@ -1,29 +1,29 @@
 ---
-name: 🐛 Bug report
-about: If something isn't working 🔧
+name: Bug report
+about: If something isn't working
 title: ''
 labels: bug
 assignees:
 ---
 
-## 🐛 Bug Report
+## Bug Report
 
 <!-- A clear and concise description of what the bug is. -->
 
-## 🔬 How To Reproduce
+## Reproduction
 
 Steps to reproduce the behavior:
 
 1. ...
 
-### Code sample
+### MWE
 
-<!-- If applicable, attach a minimal code sample to reproduce the decried issue. -->
+<!-- If applicable, attach a minimal working example to reproduce the issue. -->
 
 ### Environment
 
 * OS: [e.g. Linux / Windows / macOS]
-* Python version, get it with:
+* Python and ecosystem versions
 
 ```bash
 python --version
@@ -33,10 +33,6 @@ python --version
 
 <!-- If applicable, add screenshots to help explain your problem. -->
 
-## 📈 Expected behavior
-
-<!-- A clear and concise description of what you expected to happen. -->
-
-## 📎 Additional context
+## Additional context
 
 <!-- Add any other context about the problem here. -->

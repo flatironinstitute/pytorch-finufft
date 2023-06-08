@@ -22,8 +22,7 @@ class finufft1D1(torch.autograd.Function):
         fftshift=False,
         **finufftkwargs,
     ) -> torch.Tensor:
-        """
-        Evaluates the Type 1 NUFFT on the inputs.
+        """Evaluates the Type 1 NUFFT on the inputs.
 
         NOTE: By default here, the ordering is set to match that of Pytorch, Numpy, and Scipy's FFT implementations.
             To match the mode ordering native to FINUFFT, set `fftshift = True`
@@ -34,16 +33,32 @@ class finufft1D1(torch.autograd.Function):
 
             for -N1/2 <= k1 <= (N1-1)/2
         ```
-        Args;
-            TODO
+
+        Args:
+            points: The value `x_j` from above
+            values: The values `c[j]` from above
+            output_shape: Number of Fourier modes to use in the computation; must be specified if `out` is not given
+            out: Vector to fill in-place with resulting values; must be provided if `output_shape` is not given
+            fftshift: If true, centers the 0 mode in the resultant `torch.Tensor`
+            **finufftkwargs: Keyword arguments to be passed directly into FINUFFT Python API
 
         Returns:
             torch.Tensor(complex[N1] or complex[ntransf, N1]): The resulting array
+
+        Raises:
+            ValueError: If out TODO
+            ValueError: If either points or values are not torch.Tensor's
 
         """
 
         if out is not None:
             raise ValueError("In-place not implemented")
+        if not isinstance(points, torch.Tensor) or not isinstance(
+            values, torch.Tensor
+        ):
+            raise ValueError(
+                "Both inputs `points` and `values` must be `torch.Tensor`'s"
+            )
 
         n_modes = output_shape if output_shape is None else len(values)
 
@@ -95,8 +110,7 @@ class finufft1D2(torch.autograd.Function):
         fftshift: bool = False,
         **finufftkwargs,
     ) -> torch.Tensor:
-        """
-        Evaluates Type 2 NUFFT on inputs
+        """Evaluates Type 2 NUFFT on inputs
 
         ```
         c[j] = SUM f[k1] exp(+/-i k1 x(j))
@@ -105,8 +119,16 @@ class finufft1D2(torch.autograd.Function):
             for j = 0, ..., M-1, where the sum is over -N1/2 <= k1 <= (N1-1)/2
         ```
 
-        Args;
-            TODO
+        Args:
+            points: TBD
+            targets: TBD
+            out: TBD
+            fftshift: TBD
+            **finufftkwargs: TBD
+
+        Raises:
+            ValueError: Since `out` is not yet implemented but want to keep function signature
+            ValueError: If either points or targets is not a torch.Tensor
 
         Returns:
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
@@ -114,6 +136,13 @@ class finufft1D2(torch.autograd.Function):
 
         if out is not None:
             raise ValueError("In-place not implemented")
+
+        if not isinstance(points, torch.Tensor) or not isinstance(
+            targets, torch.Tensor
+        ):
+            raise ValueError(
+                "Both inputs `points` and `values` must be `torch.Tensor`'s"
+            )
 
         isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
         modeord = 0 if fftshift else 1
@@ -163,7 +192,17 @@ class finufft1D3(torch.autograd.Function):
 
             for k = 0, ..., N-1
         ```
-        Args: TODO
+
+        Args:
+            points: Nonuniform points
+            values: TBD
+            targets: Target
+            out: In-place vector (NOT DONE)
+            fftshift: Changes wave mode ordering
+            **finufftkwargs: Keyword arguments to be fed as-is to FINUFFT
+
+        Raises:
+            ValueError: If `out` b/c TBD
 
         Returns:
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array

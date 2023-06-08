@@ -19,7 +19,7 @@ Ns = [10, 100, 1000]
         (standard_normal(size=Ns[2]) + 1j * standard_normal(size=Ns[2])),
     ],
 )
-def test_1d_forward_CPU(c: np.ndarray) -> None:
+def test_1d_t1_forward_CPU(c: np.ndarray) -> None:
     """
     Basic test cases for 1d Type 1 against Pytorch and Numpy/ Scipy
 
@@ -33,9 +33,10 @@ def test_1d_forward_CPU(c: np.ndarray) -> None:
     against_numpy = torch.from_numpy(np.fft.fft(c))
 
     finufft1D1_out = pytorch_finufft.functional.finufft1D1.forward(
-        torch.from_numpy(2 * np.pi * np.arange(0, 1, 1 / N)), ctens, N
+        2 * np.pi * torch.arange(0, 1, 1 / N), ctens, N
     )
 
+    assert type(against_torch) == type(ctens)
     assert (
         torch.linalg.norm(finufft1D1_out - against_torch) / N
     ) == pytest.approx(0, abs=1e-05, rel=1e-06)
@@ -62,6 +63,12 @@ def test_1d_t2_forward_CPU(c: torch.Tensor):
     ctens = torch.from_numpy(c)
 
     against_torch = torch.fft.fft(ctens)
+    against_scipy = scipy.fft.fft(c)
+    against_numpy = np.fft.fft(c)
+
+    finufft_out = pytorch_finufft.functional.finufft1D2.forward(
+        2 * np.pi * torch.arange(0, 1, 1 / N), ctens
+    )
 
     # out = pytorch_finufft.functionl.finufft1D2.forward(
     # 2 * np.pi * np.arange(0, 1, 1/N), c

@@ -8,7 +8,7 @@ name = "pytorch_finufft"
 version = "0.0.0"
 description = "Pytorch bindings for the FINUFFT Library"
 readme = "README.md"
-authors = ["Matthew Meeker <mmeeker@flatironinstitute.org>, Michael Eickenberg <meickenberg@flatironinstitute.org>, Brian Ward <bward@flatironinstitute.org>"]
+authors = ["Matthew Meeker <mmeeker@flatironinstitute.org>", "Michael Eickenberg <meickenberg@flatironinstitute.org>", "Brian Ward <bward@flatironinstitute.org>"]
 license = "MIT"
 repository = "https://github.com/flatironinstitute/pytorch-finufft"
 homepage = "https://github.com/flatironinstitute/pytorch-finufft"
@@ -30,7 +30,11 @@ classifiers = [
 
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.12"
+finufft = "^2.1.0"
+torch = "^2.0.1"
+numpy = "^1.24.3"
+scipy = "^1.10.1"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.1"

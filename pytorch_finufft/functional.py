@@ -62,17 +62,9 @@ class finufft1D1(torch.autograd.Function):
 
         n_modes = output_shape if output_shape is None else len(values)
 
-        # TODO -- these are probably being "double processed". Should be some obvious way around this
-        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
-        # TODO -- isign should be left alone in the case we do not fftshift
+        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else 1
         modeord = 0 if fftshift else 1
 
-        # TODO -- probably dimension and shape match checks?
-        # finufftkwags should take in also eps, isign, ...
-
-        # Type checks -- which need to be complex vs. not, etc.
-
-        # tensor --> numpy for finufft --> tensor
         nufft_out = finufft.nufft1d1(
             points.numpy(),
             values.numpy(),
@@ -89,7 +81,7 @@ class finufft1D1(torch.autograd.Function):
         raise ValueError("TBD")
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, f_k: torch.Tensor):
         """
         Implements gradients for backward mode automatic differentiation
         """
@@ -144,7 +136,7 @@ class finufft1D2(torch.autograd.Function):
                 "Both inputs `points` and `values` must be `torch.Tensor`'s"
             )
 
-        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
+        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else 1
         modeord = 0 if fftshift else 1
 
         # TODO -- size checks and so on for the tensors

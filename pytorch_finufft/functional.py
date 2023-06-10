@@ -62,7 +62,7 @@ class finufft1D1(torch.autograd.Function):
 
         n_modes = output_shape if output_shape is None else len(values)
 
-        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else 1
+        isign = finufftkwargs.pop("isign", 1)
         modeord = 0 if fftshift else 1
 
         nufft_out = finufft.nufft1d1(
@@ -136,8 +136,12 @@ class finufft1D2(torch.autograd.Function):
                 "Both inputs `points` and `values` must be `torch.Tensor`'s"
             )
 
-        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else 1
-        modeord = 0 if fftshift else 1
+        isign = finufftkwargs.pop("isign", 1)
+
+        if fftshift:
+            finufftkwargs["modeord"] = 1
+        else:
+            finufftkwargs["modeord"] = 0
 
         # TODO -- size checks and so on for the tensors
 
@@ -145,7 +149,7 @@ class finufft1D2(torch.autograd.Function):
             points.numpy(),
             targets.numpy(),
             isign=isign,
-            modeord=modeord,
+            # modeord=modeord,
             **finufftkwargs,
         )
 

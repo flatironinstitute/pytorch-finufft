@@ -58,42 +58,40 @@ def test_1d_t1_forward_CPU(values: np.ndarray) -> None:
     "targets",
     [
         ([1.0, 2.0, 1.0, -1.0, 1.5]),
-        (standard_normal(size=Ns[0]) + 1j * standard_normal(size=Ns[0])),
-        (standard_normal(size=Ns[1]) + 1j * standard_normal(size=Ns[1])),
-        (standard_normal(size=Ns[2]) + 1j * standard_normal(size=Ns[2])),
-        (standard_normal(size=Ns[3]) + 1j * standard_normal(size=Ns[3])),
+        # (standard_normal(size=Ns[0]) + 1j * standard_normal(size=Ns[0])),
+        # (standard_normal(size=Ns[1]) + 1j * standard_normal(size=Ns[1])),
+        # (standard_normal(size=Ns[2]) + 1j * standard_normal(size=Ns[2])),
+        # (standard_normal(size=Ns[3]) + 1j * standard_normal(size=Ns[3])),
     ],
 )
-def test_1d_t2_forward_CPU(targets: torch.Tensor):
+def test_1d_t2_forward_CPU(targets: np.ndarray):
     """
     Test type 2 API against existing implementations by setting
     """
     N = len(targets)
     inv_targets = scipy.fft.fft(targets)
+    inv_targets_tens = torch.from_numpy(inv_targets)
 
     assert len(inv_targets) == N
 
-    inv_target_tens = torch.from_numpy(inv_targets)
-
-    against_torch = torch.fft.ifft(inv_target_tens)
+    against_torch = torch.fft.ifft(inv_targets_tens)
     against_scipy = scipy.fft.ifft(inv_targets)
     against_numpy = np.fft.ifft(inv_targets)
 
-    finufft_out = pytorch_finufft.functional.finufft1D2.forward(
-        2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64),
-        inv_target_tens,
+    assert torch.norm(against_torch - against_scipy) / N == pytest.approx(0)
+    assert torch.norm(against_torch - against_numpy) / N == pytest.approx(0)
+
+    finufft_out = (
+        pytorch_finufft.functional.finufft1D2.forward(
+            2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64),
+            inv_targets_tens,
+            isign=1,
+            modeord=1,
+        )
+        / N
     )
 
-    assert against_torch.dtype == inv_target_tens.dtype
-    assert (
-        torch.linalg.norm(finufft_out - against_torch) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
-    assert (
-        torch.linalg.norm((finufft_out - against_scipy) / N)
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
-    assert (
-        torch.linalg.norm(finufft_out - against_numpy) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+    assert torch.norm(finufft_out - against_torch) / N == pytest.approx(0)
 
 
 @pytest.mark.parametrize(

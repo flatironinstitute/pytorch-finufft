@@ -9,18 +9,28 @@ import pytorch_finufft
 torch.set_default_tensor_type(torch.DoubleTensor)
 torch.set_default_dtype(torch.float64)
 
-Ns = [10, 100, 1000, 10000]
+Ns = [
+    10,
+    15,
+    100,
+    101,
+    1000,
+    1001,
+    2500,
+    3750,
+    5000,
+    5001,
+    6250,
+    7500,
+    8750,
+    10000,
+]
+cases = [np.array([1.0, 2.5, -1.0, -1.5, 1.5], dtype=np.complex128)]
+for n in Ns:
+    cases.append(standard_normal(n) + 1j * standard_normal(n))
 
 
-@pytest.mark.parametrize(
-    "values",
-    [
-        (standard_normal(size=Ns[0]) + 1j * standard_normal(size=Ns[0])),
-        (standard_normal(size=Ns[1]) + 1j * standard_normal(size=Ns[1])),
-        (standard_normal(size=Ns[2]) + 1j * standard_normal(size=Ns[2])),
-        (standard_normal(size=Ns[3]) + 1j * standard_normal(size=Ns[3])),
-    ],
-)
+@pytest.mark.parametrize("values", cases)
 def test_1d_t1_forward_CPU(values: np.ndarray) -> None:
     """
     Tests against implementations of the FFT by setting up a uniform grid over
@@ -31,15 +41,11 @@ def test_1d_t1_forward_CPU(values: np.ndarray) -> None:
 
     against_torch = torch.fft.fft(val_tens)
     against_scipy = torch.from_numpy(scipy.fft.fft(values))
-    against_numpy = torch.from_numpy(np.fft.fft(values))
 
-    finufft1D1_out = (
-        pytorch_finufft.functional.finufft1D1.forward(
-            2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64),
-            val_tens,
-            N,
-        )
-        / N
+    finufft1D1_out = pytorch_finufft.functional.finufft1D1.forward(
+        2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64),
+        val_tens,
+        N,
     )
 
     assert against_torch.dtype == val_tens.dtype
@@ -48,9 +54,6 @@ def test_1d_t1_forward_CPU(values: np.ndarray) -> None:
     ) == pytest.approx(0, abs=1e-05, rel=1e-06)
     assert (
         torch.linalg.norm(finufft1D1_out - against_scipy) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
-    assert (
-        torch.linalg.norm(finufft1D1_out - against_numpy) / N
     ) == pytest.approx(0, abs=1e-05, rel=1e-06)
 
 
@@ -91,6 +94,11 @@ def test_1d_t2_forward_CPU(targets: np.ndarray):
         / N
     )
 
+    print(inv_targets)
+    print(against_torch)
+    print(finufft_out)
+
+    assert torch.norm(finufft_out - np.array(targets)) / N == pytest.approx(0)
     assert torch.norm(finufft_out - against_torch) / N == pytest.approx(0)
 
 

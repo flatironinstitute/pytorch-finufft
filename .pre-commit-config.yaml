@@ -23,6 +23,14 @@ repos:
     hooks:
       - id: codestyle
         name: codestyle
-        entry: make codestyle
+        entry: make check-codestyle
+        types: [python]
+        language: system
+
+  - repo: local
+    hooks:
+      - id: testing
+        name: testing
+        entry: make test
         types: [python]
         language: system

@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Union
+from typing import Optional
 
 import finufft
 import torch
@@ -17,10 +17,10 @@ class finufft1D1(torch.autograd.Function):
     def forward(
         points: torch.Tensor,
         values: torch.Tensor,
-        output_shape: Union[int, None] = None,
-        out: Union[torch.Tensor, None] = None,
-        fftshift=False,
-        **finufftkwargs,
+        output_shape: Optional[int] = None,
+        out: Optional[torch.Tensor] = None,
+        fftshift: bool = False,
+        **finufftkwargs: Optional[str],
     ) -> torch.Tensor:
         """Evaluates the Type 1 NUFFT on the inputs.
 
@@ -51,10 +51,6 @@ class finufft1D1(torch.autograd.Function):
         Returns:
             torch.Tensor(complex[N1] or complex[ntransf, N1]): The
                 resultant array
-
-        Raises:
-            ValueError: If out TODO
-            ValueError: If either points or values are not torch.Tensor's
         """
 
         if output_shape is None:
@@ -90,7 +86,7 @@ class finufft1D2(torch.autograd.Function):
     def forward(
         points: torch.Tensor,
         targets: torch.Tensor,
-        out: Union[torch.Tensor, None] = None,
+        out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
         isign: int = 1,
         **finufftkwargs,
@@ -109,17 +105,16 @@ class finufft1D2(torch.autograd.Function):
             targets: Fourier mode coefficient tensor of length N1, where N1 may be even or odd.
             out: Array to take the output in-place
             fftshift: If true, centers the 0 mode in the resultant `torch.Tensor`
+            isign: sign of the imaginary number `i` in the polar form mathbb{C}
             **finufftkwargs: Keyword arguments
                 # TODO -- link the one FINUFFT page regarding keywords
 
         Raises:
-            ValueError: Since `out` is not yet implemented but want to keep function signature
-            ValueError: If either points or targets is not a torch.Tensor
+            TypeError: If either or both `points` and `targets` are not `torch.Tensor`
 
         Returns:
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
         """
-
         if not (
             isinstance(points, torch.Tensor)
             and isinstance(targets, torch.Tensor)
@@ -151,7 +146,7 @@ class finufft1D3(torch.autograd.Function):
         points: torch.Tensor,
         values: torch.Tensor,
         targets: torch.Tensor,
-        out: Union[torch.Tensor, None] = None,
+        out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
         **finufftkwargs,
     ) -> torch.Tensor:
@@ -174,31 +169,15 @@ class finufft1D3(torch.autograd.Function):
             fftshift: Changes wave mode ordering
             **finufftkwargs: Keyword arguments to be fed as-is to FINUFFT
 
-        Raises:
-            ValueError: If `out` b/c TBD
-
         Returns:
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
         """
 
-        if out is not None:
-            raise ValueError("In-place not implemented")
-
-        isign = finufftkwargs.get("isign") if "isign" in finufftkwargs else -1
-        modeord = 0 if fftshift else 1
-
-        # TODO -- size checks and so on for the tensors; finufft will handle the rest of these
-
-        nufft_out = finufft.nufft1d3(
-            points.numpy(),
-            values.numpy(),
-            targets.numpy(),
-            isign=isign,
-            modeord=modeord,
-            **finufftkwargs,
+        finufft_out = finufft.nufft1d3(
+            points.numpy(), values.numpy(), targets.numpy(), isign=-1
         )
 
-        return torch.from_numpy(nufft_out)
+        return torch.from_numpy(finufft_out)
 
     @staticmethod
     def setup_context(_):

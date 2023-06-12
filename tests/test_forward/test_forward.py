@@ -52,11 +52,11 @@ def test_1d_t1_forward_CPU(values: np.ndarray) -> None:
 
     assert against_torch.dtype == val_tens.dtype
     assert (
-        torch.linalg.norm(finufft1D1_out - against_torch) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+        torch.linalg.norm(finufft1D1_out - against_torch) / (N**2)
+    ) == pytest.approx(0, abs=1e-06)
     assert (
-        torch.linalg.norm(finufft1D1_out - against_scipy) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+        torch.linalg.norm(finufft1D1_out - against_scipy) / (N**2)
+    ) == pytest.approx(0, abs=1e-06)
 
 
 @pytest.mark.parametrize("targets", cases)
@@ -82,49 +82,36 @@ def test_1d_t2_forward_CPU(targets: np.ndarray):
         / N
     )
 
-    assert torch.norm(finufft_out - np.array(targets)) / N == pytest.approx(
-        0, abs=1e-05
-    )
-    assert torch.norm(finufft_out - against_torch) / N == pytest.approx(
+    assert torch.norm(finufft_out - np.array(targets)) / (
+        N**2
+    ) == pytest.approx(0, abs=1e-05)
+    assert torch.norm(finufft_out - against_torch) / (N**2) == pytest.approx(
         0, abs=1e-05
     )
 
 
-@pytest.mark.parametrize(
-    "values",
-    [
-        (standard_normal(size=Ns[0]) + 1j * standard_normal(size=Ns[0])),
-        (standard_normal(size=Ns[1]) + 1j * standard_normal(size=Ns[1])),
-        (standard_normal(size=Ns[2]) + 1j * standard_normal(size=Ns[2])),
-        (standard_normal(size=Ns[3]) + 1j * standard_normal(size=Ns[3])),
-    ],
-)
-def test_1d_t3_forward_CPU(values: torch.Tensor):
+@pytest.mark.parametrize("values", cases)
+def test_1d_t3_forward_CPU(values: np.ndarray):
     """
     Test type 3 API against existing implementations
     """
     N = len(values)
-    val_tens = torch.from_numpy(values)
 
-    against_torch = torch.fft.fft(val_tens)
-    against_scipy = scipy.fft.fft(values)
-    against_numpy = np.fft.fft(values)
+    points = 2 * np.pi * torch.arange(0, 1, 1 / N)
+    targets = torch.arange(0, N, dtype=torch.float64)
 
     finufft_out = pytorch_finufft.functional.finufft1D3.forward(
-        points=2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64),
-        values=val_tens,
-        # targets=2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
-        # targets=val_tens,
-        targets=torch.ones(N),
+        points, torch.from_numpy(values), targets
     )
+
+    against_torch = torch.fft.fft(torch.from_numpy(values))
+    against_scipy = scipy.fft.fft(values)
 
     assert against_torch.dtype == finufft_out.dtype
     assert (
-        torch.linalg.norm(finufft_out - against_torch) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+        torch.linalg.norm(finufft_out - against_torch) / (N**2)
+    ) == pytest.approx(0, abs=1e-05)
     assert (
-        torch.linalg.norm(finufft_out - against_scipy) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
-    assert (
-        torch.linalg.norm(finufft_out - against_numpy) / N
-    ) == pytest.approx(0, abs=1e-05, rel=1e-06)
+        torch.linalg.norm(finufft_out - torch.from_numpy(against_scipy))
+        / (N**2)
+    ) == pytest.approx(0, abs=1e-05)

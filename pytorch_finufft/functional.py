@@ -60,6 +60,8 @@ class finufft1D1(torch.autograd.Function):
         if output_shape is None:
             output_shape = len(points)
 
+        # TODO: restore total API
+
         finufft_out = finufft.nufft1d1(
             points.numpy(), values.numpy(), output_shape, modeord=1, isign=-1
         )
@@ -118,7 +120,17 @@ class finufft1D2(torch.autograd.Function):
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
         """
 
-        pass
+        if not (
+            isinstance(points, torch.Tensor)
+            and isinstance(targets, torch.Tensor)
+        ):
+            raise TypeError("Both `points` and `targets` must be torch.Tensor")
+
+        finufft_out = finufft.nufft1d2(
+            points.numpy(), targets.numpy(), modeord=1, isign=1
+        )
+
+        return torch.from_numpy(finufft_out)
 
     @staticmethod
     def setup_context(_):
@@ -142,7 +154,7 @@ class finufft1D3(torch.autograd.Function):
         out: Union[torch.Tensor, None] = None,
         fftshift: bool = False,
         **finufftkwargs,
-    ):
+    ) -> torch.Tensor:
         """
         Evaluates Type 3 NUFFT on inputs
 

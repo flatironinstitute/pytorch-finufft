@@ -250,15 +250,25 @@ class finufft1D2(torch.autograd.Function):
             out: Array to take the output in-place
             fftshift: If true, centers the 0 mode in the resultant torch.Tensor
             **finufftkwargs: Keyword arguments
-                # TODO -- link the one FINUFFT page regarding keywords, and note also isign
+                # TODO -- link the one FINUFFT page regarding keywords, and note also isign and eps
 
         Returns:
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
         """
         _type2_checks(points, targets)
 
+        _mode_ordering = finufftkwargs.pop("modeord", 1)
+        _i_sign = finufftkwargs.pop("isign", 1)
+
+        if fftshift:
+            _mode_ordering = 0
+
         finufft_out = finufft.nufft1d2(
-            points.numpy(), targets.numpy(), modeord=1, isign=1
+            points.numpy(),
+            targets.numpy(),
+            modeord=_mode_ordering,
+            isign=_i_sign,
+            **finufftkwargs,
         )
 
         return torch.from_numpy(finufft_out)
@@ -283,7 +293,6 @@ class finufft1D3(torch.autograd.Function):
         values: torch.Tensor,
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
-        fftshift: bool = False,
         **finufftkwargs,
     ) -> torch.Tensor:
         """Evaluates Type 3 NUFFT on inputs
@@ -301,17 +310,22 @@ class finufft1D3(torch.autograd.Function):
             values: TODO
             targets: TODO
             out: TODO
-            fftshift: TODO
             **finufftkwargs: TODO
 
         Returns:
             torch.Tensor: The resultant array
         """
-
         _type3_checks(points, values, targets)
 
+        _i_sign = finufftkwargs.pop("isign", -1)
+        # NOTE: no mode ordering kwarg for type 3
+
         finufft_out = finufft.nufft1d3(
-            points.numpy(), values.numpy(), targets.numpy(), isign=-1
+            points.numpy(),
+            values.numpy(),
+            targets.numpy(),
+            isign=_i_sign,
+            **finufftkwargs,
         )
 
         return torch.from_numpy(finufft_out)

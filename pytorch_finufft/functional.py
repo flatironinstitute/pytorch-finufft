@@ -8,9 +8,36 @@ import finufft
 import torch
 
 
+def _common_type_checks(
+    points: Optional[torch.Tensor],
+    values: Optional[torch.Tensor],
+    targets: Optional[torch.Tensor],
+    type3: bool = False,
+) -> None:
+    """Performs all type checks for FINUFFT forward calls."""
+    # Check all tensors
+    if points is not None and not isinstance(points, torch.Tensor):
+        raise TypeError("points must be a torch.Tensor")
+    elif values is not None and not isinstance(values, torch.Tensor):
+        raise TypeError("values must be a torch.Tensor")
+    elif targets is not None and not isinstance(targets, torch.Tensor):
+        raise TypeError("targets must be a torch.Tensor")
+
+    # Check for the correct dtype
+    if points is not None and not torch.is_floating_point(points):
+        raise TypeError("points should be float-valued.")
+    if values is not None and not torch.is_complex(values):
+        raise TypeError("values should be complex-valued.")
+
+    if targets is not None:
+        if type3 and not torch.is_floating_point(targets):
+            raise TypeError("targets should be float-valued.")
+        elif not type3 and not torch.is_complex(targets):
+            raise TypeError("targets should be complex-valued.")
+
+
 def _type1_checks(points: torch.Tensor, values: torch.Tensor) -> None:
-    """Performs all type and size checks for the type 1 FINUFFT calls,
-    independent of dimension.
+    """Performs type, size, and precision checks for type 1 FINUFFT calls
 
     Args:
         points: torch.Tensor to check as satisfying requirements for
@@ -24,60 +51,29 @@ def _type1_checks(points: torch.Tensor, values: torch.Tensor) -> None:
             not complex-valued; if there is a single/ double precision
             mismatch between points and values.
         ValueError: If the lengths of points and values are mismatched.
-
-    Returns:
-        None
     """
-    # Check that both are Tensors
-    if not (
-        isinstance(points, torch.Tensor) and isinstance(values, torch.Tensor)
-    ):
-        raise TypeError(
-            "Both points and values must be torch.Tensor. Instead,\
-             got points: "
-            + type(points)
-            + " and values: "
-            + type(values)
-        )
+    _common_type_checks(points, values, None)
 
-    if not torch.is_floating_point(points):
-        raise TypeError(
-            "points must be of floating point dtype, ie,\
-                torch.float16, torch.bfloat16, torch.float32, or\
-                torch.float64. Instead, got "
-            + points.dtype
-        )
-
-    if not torch.is_complex(values):
-        raise TypeError(
-            "values must be of complex dtype, ie, torch.complex64\
-                for single precision, or torch.complex128 for double\
-                precision. Instead, got "
-            + values.dtype
-        )
-
+    # Ensure precisions are lined up
     if points.dtype is torch.float32 and values.dtype is not torch.complex64:
         raise TypeError(
-            "Precisions must match; since points is single precision, ie,\
-            torch.float32, values must be torch.complex64."
+            "Precisions must match; since points is torch.float32, values must\
+            be torch.complex64 for single precision"
         )
 
     if points.dtype is torch.float64 and values.dtype is not torch.complex128:
         raise TypeError(
-            "Precisions must match; since points is double precision, ie,\
-            torch.float64, values must be torch.complex128."
+            "Precisions must match; since points is torch.float64, values must\
+            be torch.complex64 for double precision"
         )
 
     # Check that sizes match
     if not (len(points) == len(values)):
         raise ValueError("Both points and values must have the same length.")
 
-    return
-
 
 def _type2_checks(points: torch.Tensor, targets: torch.Tensor) -> None:
-    """Performs all type/ input checks for the type 2 FINUFFT calls,
-    independent of dimension.
+    """Performs type, size, and precision checks for type 2 FINUFFT calls.
 
     Args:
         points: torch.Tensor to check as satisfying the requirements as the
@@ -86,42 +82,12 @@ def _type2_checks(points: torch.Tensor, targets: torch.Tensor) -> None:
             second positional to the type 2 FINUFFT
 
     Raises:
-        TypeError: If one or both are not torch.Tensor; if points
-            is not a floating point torch.Tensor or if values is
-            not complex-valued; if there is a single/ double precision
-            mismatch between points and values.
-
-    Returns:
-        None
+        TypeError: If there is a precision mismatch.
     """
-    # Check that both are Tensors
-    if not (
-        isinstance(points, torch.Tensor) and isinstance(targets, torch.Tensor)
-    ):
-        raise TypeError(
-            "Both points and targets must be torch.Tensor. Instead,\
-             got points: "
-            + type(points)
-            + " and targets: "
-            + type(targets)
-        )
+    # Type checks
+    _common_type_checks(points, None, targets)
 
-    if not torch.is_floating_point(points):
-        raise TypeError(
-            "points must be of floating point dtype, ie,\
-                torch.float16, torch.bfloat16, torch.float32, or\
-                torch.float64. Instead, got "
-            + points.dtype
-        )
-
-    if not torch.is_complex(targets):
-        raise TypeError(
-            "targets must be of complex dtype, ie, torch.complex64\
-                for single precision, or torch.complex128 for double\
-                precision. Instead, got "
-            + targets.dtype
-        )
-
+    # Check precisions
     if points.dtype is torch.float32 and targets.dtype is not torch.complex64:
         raise TypeError(
             "Precisions must match; since points is single precision, ie,\
@@ -132,6 +98,43 @@ def _type2_checks(points: torch.Tensor, targets: torch.Tensor) -> None:
         raise TypeError(
             "Precisions must match; since points is double precision, ie,\
             torch.float64, targets must be torch.complex128."
+        )
+
+    return
+
+
+def _type3_checks(
+    points: torch.Tensor, values: torch.Tensor, targets: torch.Tensor
+) -> None:
+    """Performs type, size, and precision checks for type 3 FINUFFT calls.
+
+    Args:
+        points: TODO
+        values: TODO
+        targets: TODO
+
+    Raises:
+        TypeError: TODO
+    """
+
+    _common_type_checks(points, values, targets, True)
+
+    if points.dtype is torch.float32 and (
+        values.dtype is not torch.complex64
+        or targets.dtype is not torch.complex64
+    ):
+        raise TypeError(
+            "Precisions must match; since points is torch.float32, values\
+                and targets must be torch.complex64"
+        )
+
+    if points.dtype is torch.float64 and (
+        values.dtype is not torch.complex128
+        or targets.dtype is not torch.float64
+    ):
+        raise TypeError(
+            "Precisions must match; since points is torch.float64, values\
+                must be torch.complex128, and targets must be torch.float64"
         )
 
     return
@@ -178,10 +181,10 @@ class finufft1D1(torch.autograd.Function):
                 resultant torch.Tensor.
             **finufftkwargs: Keyword arguments to be passed directly
                 into FINUFFT Python API
+                #TODO -- link the one page, and note also isign.
 
         Returns:
-            torch.Tensor(complex[N1] or complex[ntransf, N1]): The
-                resultant array
+            torch.Tensor: The resultant array
         """
 
         if output_shape is None and out is None:
@@ -247,7 +250,7 @@ class finufft1D2(torch.autograd.Function):
             out: Array to take the output in-place
             fftshift: If true, centers the 0 mode in the resultant torch.Tensor
             **finufftkwargs: Keyword arguments
-                # TODO -- link the one FINUFFT page regarding keywords
+                # TODO -- link the one FINUFFT page regarding keywords, and note also isign
 
         Returns:
             torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
@@ -283,8 +286,7 @@ class finufft1D3(torch.autograd.Function):
         fftshift: bool = False,
         **finufftkwargs,
     ) -> torch.Tensor:
-        """
-        Evaluates Type 3 NUFFT on inputs
+        """Evaluates Type 3 NUFFT on inputs
 
         ```
             M-1
@@ -295,16 +297,18 @@ class finufft1D3(torch.autograd.Function):
         ```
 
         Args:
-            points: Nonuniform points
-            values: TBD
-            targets: Target
-            out: In-place vector (NOT DONE)
-            fftshift: Changes wave mode ordering
-            **finufftkwargs: Keyword arguments to be fed as-is to FINUFFT
+            points: TODO
+            values: TODO
+            targets: TODO
+            out: TODO
+            fftshift: TODO
+            **finufftkwargs: TODO
 
         Returns:
-            torch.Tensor(complex[M] or complex[ntransf, M]): The resulting array
+            torch.Tensor: The resultant array
         """
+
+        _type3_checks(points, values, targets)
 
         finufft_out = finufft.nufft1d3(
             points.numpy(), values.numpy(), targets.numpy(), isign=-1

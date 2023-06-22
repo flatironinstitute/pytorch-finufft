@@ -4,6 +4,8 @@
 import sys
 from importlib import metadata as importlib_metadata
 
+from . import functional
+
 
 def get_version() -> str:
     try:

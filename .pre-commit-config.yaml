@@ -23,22 +23,14 @@ repos:
     hooks:
       - id: codestyle
         name: codestyle
-        entry: make codestyle
+        entry: make check-codestyle
         types: [python]
         language: system
 
   - repo: local
     hooks:
-      - id: isort
-        name: isort
-        entry: poetry run isort --settings-path pyproject.toml
-        types: [python]
-        language: system
-
-  - repo: local
-    hooks:
-      - id: black
-        name: black
-        entry: poetry run black --config pyproject.toml
+      - id: testing
+        name: testing
+        entry: make test
         types: [python]
         language: system

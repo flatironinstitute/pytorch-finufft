@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Optional
+from typing import Optional, Tuple
 
 import finufft
 import torch
@@ -12,9 +12,25 @@ def _common_type_checks(
     points: Optional[torch.Tensor],
     values: Optional[torch.Tensor],
     targets: Optional[torch.Tensor],
-    type3: bool = False,
 ) -> None:
-    """Performs all type checks for FINUFFT forward calls."""
+    """Performs all type checks for FINUFFT forward calls.
+
+    Args:
+        points: torch.Tensor to be checked. Required for all types.
+        values: torch.Tensor to be checked. Required for Type 1 and 3
+        targets: torch.Tensor to be checked. Required for Type 2 and 3
+
+    Raises:
+        TypeError: in the case that not all inputs are torch.Tensor; in
+            the case that the precisions do not line up properly; in
+            the case that the datatypes are incorrect (eg. real-valued
+            when the input should be complex-valued)
+    """
+
+    type3 = False
+    if points is not None and values is not None and targets is not None:
+        type3 = True
+
     # Check all tensors
     if points is not None and not isinstance(points, torch.Tensor):
         raise TypeError("points must be a torch.Tensor")
@@ -57,14 +73,12 @@ def _type1_checks(points: torch.Tensor, values: torch.Tensor) -> None:
     # Ensure precisions are lined up
     if points.dtype is torch.float32 and values.dtype is not torch.complex64:
         raise TypeError(
-            "Precisions must match; since points is torch.float32, values must\
-            be torch.complex64 for single precision"
+            "Precisions must match; since points is torch.float32, values must be torch.complex64 for single precision"
         )
 
     if points.dtype is torch.float64 and values.dtype is not torch.complex128:
         raise TypeError(
-            "Precisions must match; since points is torch.float64, values must\
-            be torch.complex64 for double precision"
+            "Precisions must match; since points is torch.float64, values must be torch.complex128 for double precision"
         )
 
     # Check that sizes match
@@ -90,14 +104,12 @@ def _type2_checks(points: torch.Tensor, targets: torch.Tensor) -> None:
     # Check precisions
     if points.dtype is torch.float32 and targets.dtype is not torch.complex64:
         raise TypeError(
-            "Precisions must match; since points is single precision, ie,\
-            torch.float32, targets must be torch.complex64."
+            "Precisions must match; since points is torch.float32, targets must be torch.complex64."
         )
 
     if points.dtype is torch.float64 and targets.dtype is not torch.complex128:
         raise TypeError(
-            "Precisions must match; since points is double precision, ie,\
-            torch.float64, targets must be torch.complex128."
+            "Precisions must match; since points is torch.float64, targets must be torch.complex128."
         )
 
     return
@@ -117,15 +129,14 @@ def _type3_checks(
         TypeError: TODO
     """
 
-    _common_type_checks(points, values, targets, True)
+    _common_type_checks(points, values, targets)
 
     if points.dtype is torch.float32 and (
         values.dtype is not torch.complex64
-        or targets.dtype is not torch.complex64
+        or targets.dtype is not torch.float32
     ):
         raise TypeError(
-            "Precisions must match; since points is torch.float32, values\
-                and targets must be torch.complex64"
+            "Precisions must match; since points is torch.float32, values must be torch.complex64, and targets must be torch.float32"
         )
 
     if points.dtype is torch.float64 and (
@@ -133,8 +144,7 @@ def _type3_checks(
         or targets.dtype is not torch.float64
     ):
         raise TypeError(
-            "Precisions must match; since points is torch.float64, values\
-                must be torch.complex128, and targets must be torch.float64"
+            "Precisions must match; since points is torch.float64, values must be torch.complex128, and targets must be torch.float64"
         )
 
     return
@@ -147,6 +157,7 @@ class finufft1D1(torch.autograd.Function):
 
     @staticmethod
     def forward(
+        ctx,
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Optional[int] = None,
@@ -168,6 +179,7 @@ class finufft1D1(torch.autograd.Function):
         ```
 
         Args:
+            ctx: PyTorch context object
             points: The non-uniform points x_j; valid only
                 between -3pi and 3pi.
             values: The source strengths c_j
@@ -183,6 +195,10 @@ class finufft1D1(torch.autograd.Function):
                 into FINUFFT Python API
                 #TODO -- link the one page, and note also isign.
 
+        Raises:
+            ValueError: in the case that the mode ordering is double specified,
+                implying a conflict (only one of modeord or fftshift should be provided)
+
         Returns:
             torch.Tensor: The resultant array
         """
@@ -196,7 +212,21 @@ class finufft1D1(torch.autograd.Function):
         _i_sign = finufftkwargs.pop("isign", -1)
 
         if fftshift:
+            if _mode_ordering != 1:
+                raise ValueError(
+                    "Double specification of Fourier mode ordering;\
+                         only one of fftshift and modeord should be given"
+                )
             _mode_ordering = 0
+
+        # NOTE: this is passed in as None in the test suite
+        if ctx is not None:
+            ctx.output_shape = output_shape
+            ctx.isign = _i_sign
+            ctx.mode_ordering = _mode_ordering
+            ctx.finufftkwargs = finufftkwargs
+
+            ctx.save_for_backward(values, points)
 
         finufft_out = finufft.nufft1d1(
             points.numpy(),
@@ -210,16 +240,42 @@ class finufft1D1(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def setup_context(ctx, inputs, outputs):
-        raise ValueError("TBD")
-
-    @staticmethod
-    def backward(ctx, f_k: torch.Tensor):
+    def backward(ctx, grad_output):
         """
         Implements gradients for backward mode automatic differentiation
+
+        Args:
+            ctx: Pytorch context object TODO
+            grad_output: vjp output
+
+        Returns:
+            TODO : tuple of derivatives with respect to each input; only defined
+                in the case the input is a torch.Tensor
         """
 
-        raise ValueError("TBD")
+        # ctx is passed in as None
+        output_shape = ctx.output_shape
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+        finufftkwargs = ctx.finufftkwargs
+
+        points, values = ctx.saved_tensors
+        grad_points = grad_values = None
+
+        if ctx.needs_input_grad[0]:
+            # w.r.t. the points x_j
+            grad_points = None  # finufft.nufft1d2()
+        if ctx.needs_input_grad[1]:
+            # w.r.t. the values c_j
+            grad_values = finufft.nufft1d2(
+                points,
+                grad_output,
+                isign=_i_sign,
+                modeord=_mode_ordering,
+                **finufftkwargs,
+            )
+
+        return grad_points, grad_values, None, None, None, None
 
 
 class finufft1D2(torch.autograd.Function):
@@ -229,6 +285,7 @@ class finufft1D2(torch.autograd.Function):
 
     @staticmethod
     def forward(
+        ctx,
         points: torch.Tensor,
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
@@ -245,6 +302,7 @@ class finufft1D2(torch.autograd.Function):
         ```
 
         Args:
+            ctx: PyTorch context object
             points: The non-uniform points x_j; valid only between -3pi and 3pi
             targets: Fourier mode coefficient tensor of length N1, where N1 may be even or odd.
             out: Array to take the output in-place
@@ -263,6 +321,13 @@ class finufft1D2(torch.autograd.Function):
         if fftshift:
             _mode_ordering = 0
 
+        # NOTE: this is passed in as None in the test suite
+        if ctx is not None:
+            ctx.isign = _i_sign
+            ctx.mode_ordering = _mode_ordering
+            ctx.fftshift = fftshift
+            ctx.finufftkwargs = finufftkwargs
+
         finufft_out = finufft.nufft1d2(
             points.numpy(),
             targets.numpy(),
@@ -274,12 +339,18 @@ class finufft1D2(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def setup_context(_):
-        raise ValueError("TBD")
+    def backward(ctx, grad_out):
+        """
+        Implements gradients for backward mode autograd
 
-    @staticmethod
-    def backward(_):
-        raise ValueError("TBD")
+        Args:
+            ctx: Pytorch context object
+            grad_out: left-hand multiplicand in VJP
+        """
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+
+        pass
 
 
 class finufft1D3(torch.autograd.Function):
@@ -289,6 +360,7 @@ class finufft1D3(torch.autograd.Function):
 
     @staticmethod
     def forward(
+        ctx,
         points: torch.Tensor,
         values: torch.Tensor,
         targets: torch.Tensor,
@@ -306,6 +378,7 @@ class finufft1D3(torch.autograd.Function):
         ```
 
         Args:
+            ctx: Pytorch context object or None
             points: TODO
             values: TODO
             targets: TODO
@@ -317,8 +390,13 @@ class finufft1D3(torch.autograd.Function):
         """
         _type3_checks(points, values, targets)
 
+        # NB: no mode ordering kwarg for type 3
         _i_sign = finufftkwargs.pop("isign", -1)
-        # NOTE: no mode ordering kwarg for type 3
+
+        # NOTE: this is passed in as None in the test suite
+        if ctx is not None:
+            ctx.isign = _i_sign
+            ctx.finufftkwargs = finufftkwargs
 
         finufft_out = finufft.nufft1d3(
             points.numpy(),

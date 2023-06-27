@@ -7,6 +7,8 @@ from typing import Optional, Tuple
 import finufft
 import torch
 
+import pytorch_finufft
+
 
 def _common_type_checks(
     points: Optional[torch.Tensor],
@@ -208,6 +210,9 @@ class finufft1D1(torch.autograd.Function):
 
         _type1_checks(points, values)
 
+        # TODO -- consider methods of copying here to protect the pass
+        #  by value and pass by reference.
+
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)
 
@@ -221,7 +226,6 @@ class finufft1D1(torch.autograd.Function):
 
         # NOTE: this is passed in as None in the test suite
         if ctx is not None:
-            ctx.output_shape = output_shape
             ctx.isign = _i_sign
             ctx.mode_ordering = _mode_ordering
             ctx.finufftkwargs = finufftkwargs
@@ -253,8 +257,9 @@ class finufft1D1(torch.autograd.Function):
                 in the case the input is a torch.Tensor
         """
 
+        print(grad_output)
+
         # ctx is passed in as None
-        output_shape = ctx.output_shape
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
@@ -267,7 +272,12 @@ class finufft1D1(torch.autograd.Function):
             grad_points = None  # finufft.nufft1d2()
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j
-            grad_values = finufft.nufft1d2(
+            np_points = points.detach().numpy()
+            np_grad_output = grad_output.numpy()
+            print(np_points.dtype)
+            print(np_grad_output.dtype)
+
+            grad_values = pytorch_finufft.functional.finufft1D2.apply(
                 points,
                 grad_output,
                 isign=_i_sign,
@@ -339,18 +349,31 @@ class finufft1D2(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def backward(ctx, grad_out):
+    def backward(ctx, grad_output):
         """
         Implements gradients for backward mode autograd
 
         Args:
             ctx: Pytorch context object
-            grad_out: left-hand multiplicand in VJP
+            grad_output: left-hand multiplicand in VJP
+
+        Returns:
+            Tuple of derivatives with respect to each input to the forward
+                method.
         """
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
+        _fftshift = ctx.fftshift
+        _finufftkwargs = ctx.finufftkwargs
 
-        pass
+        grad_points = grad_targets = None
+
+        if ctx.needs_input_grad[0]:
+            grad_points = None
+        if ctx.needs_input_grad[1]:
+            grad_targets = None
+
+        return grad_points, grad_targets, None, None, None
 
 
 class finufft1D3(torch.autograd.Function):
@@ -379,11 +402,12 @@ class finufft1D3(torch.autograd.Function):
 
         Args:
             ctx: Pytorch context object or None
-            points: TODO
-            values: TODO
-            targets: TODO
-            out: TODO
-            **finufftkwargs: TODO
+            points: The non-uniform points x_j; valid only between -3pi and 3pi
+            values: The source strengths c_j
+            targets: Fourier mode coefficient tensor of length N1, where N1 may be even or odd.
+            out: Array to take the output in-place
+            **finufftkwargs: Keyword arguments
+                # TODO -- link the one FINUFFT page regarding keywords, etc
 
         Returns:
             torch.Tensor: The resultant array
@@ -413,5 +437,28 @@ class finufft1D3(torch.autograd.Function):
         raise ValueError("TBD")
 
     @staticmethod
-    def backward(_):
-        raise ValueError("TBD")
+    def backward(ctx, grad_output):
+        """
+        Implements gradients for backward mode autograd
+
+        Args:
+            ctx: Pytorch context object
+            grad_output: left-hand multiplicand in VJP
+
+        Returns:
+            Tuple of derivatives with respect to each input to the forward
+                method (here, 5).
+        """
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+        _fftshift = ctx.fftshift
+        _finufftkwargs = ctx.finufftkwargs
+
+        grad_points = grad_targets = None
+
+        if ctx.needs_input_grad[0]:
+            grad_points = None
+        if ctx.needs_input_grad[1]:
+            grad_targets = None
+
+        return grad_points, grad_targets, None, None, None

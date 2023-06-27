@@ -59,6 +59,11 @@ def test_1d_t1_forward_CPU(values: torch.tensor) -> None:
         N,
     )
 
+    if values.dtype is torch.complex64:
+        assert finufft1D1_out.dtype is torch.complex64
+    else:
+        assert finufft1D1_out.dtype is torch.complex128
+
     assert against_torch.dtype == values.dtype
     assert (
         torch.linalg.norm(finufft1D1_out - against_torch) / N**2

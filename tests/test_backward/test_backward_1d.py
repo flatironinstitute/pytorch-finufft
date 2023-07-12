@@ -59,11 +59,25 @@ def t1_backward_CPU_values(values: torch.Tensor) -> None:
     rind = np.randint(100)
     w = torch.zeros(100)
     w[rind] = 1
+    V = torch.randn(N)
 
     # Frechet test
 
     out = pytorch_finufft.functional.finufft1D1.apply(points, values)
-    JAC_w_F = torch.abs(out).flatten().dot(w)
+    JAC_w_F = torch.abs(out).flatten().dot(V)
+
+    assert values.grad is None
+    JAC_w_F.backward()
+    assert values.grad is not None
+
+    assert torch.dot(w, values.grad) - (
+        torch.abs(pytorch_finufft.functional.finufft1D1(points, values + T * w))
+        .flatten()
+        .dot(V)
+        - torch.abs(pytorch_finufft.functional.finufft1D1(points, values))
+        .flatten()
+        .dot(V)
+    ) / T == pytest.approx(0, abs=1e-05)
 
     # GD test
     out = pytorch_finufft.functional.finufft1D1.apply(points, values)

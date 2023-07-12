@@ -205,14 +205,13 @@ class finufft1D1(torch.autograd.Function):
             torch.Tensor: The resultant array
         """
 
+        # TODO -- probably want to do away with
         if output_shape is None and out is None:
             output_shape = len(points)
 
         _type1_checks(points, values)
 
-        # TODO -- consider methods of copying here to protect the pass
-        #  by value and pass by reference.
-
+        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)
 
@@ -224,13 +223,11 @@ class finufft1D1(torch.autograd.Function):
                 )
             _mode_ordering = 0
 
-        # NOTE: this is passed in as None in the test suite
-        if ctx is not None:
-            ctx.isign = _i_sign
-            ctx.mode_ordering = _mode_ordering
-            ctx.finufftkwargs = finufftkwargs
+        ctx.isign = _i_sign
+        ctx.mode_ordering = _mode_ordering
+        ctx.finufftkwargs = finufftkwargs
 
-            ctx.save_for_backward(values, points)
+        ctx.save_for_backward(points, values)
 
         finufft_out = finufft.nufft1d1(
             points.numpy(),
@@ -244,7 +241,7 @@ class finufft1D1(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output: torch.Tensor):
         """
         Implements gradients for backward mode automatic differentiation
 
@@ -257,9 +254,8 @@ class finufft1D1(torch.autograd.Function):
                 in the case the input is a torch.Tensor
         """
 
-        print(grad_output)
+        print(type(ctx))
 
-        # ctx is passed in as None
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
@@ -274,15 +270,15 @@ class finufft1D1(torch.autograd.Function):
             # w.r.t. the values c_j
             np_points = points.detach().numpy()
             np_grad_output = grad_output.numpy()
-            print(np_points.dtype)
-            print(np_grad_output.dtype)
 
-            grad_values = pytorch_finufft.functional.finufft1D2.apply(
-                points,
-                grad_output,
-                isign=_i_sign,
-                modeord=_mode_ordering,
-                **finufftkwargs,
+            grad_values = torch.from_numpy(
+                finufft.nufft1d2(
+                    np_points,
+                    np_grad_output,
+                    isign=_i_sign,
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
             )
 
         return grad_points, grad_values, None, None, None, None
@@ -325,18 +321,17 @@ class finufft1D2(torch.autograd.Function):
         """
         _type2_checks(points, targets)
 
+        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", 1)
 
         if fftshift:
             _mode_ordering = 0
 
-        # NOTE: this is passed in as None in the test suite
-        if ctx is not None:
-            ctx.isign = _i_sign
-            ctx.mode_ordering = _mode_ordering
-            ctx.fftshift = fftshift
-            ctx.finufftkwargs = finufftkwargs
+        ctx.isign = _i_sign
+        ctx.mode_ordering = _mode_ordering
+        ctx.fftshift = fftshift
+        ctx.finufftkwargs = finufftkwargs
 
         finufft_out = finufft.nufft1d2(
             points.numpy(),
@@ -354,8 +349,8 @@ class finufft1D2(torch.autograd.Function):
         Implements gradients for backward mode autograd
 
         Args:
-            ctx: Pytorch context object
-            grad_output: left-hand multiplicand in VJP
+            ctx: Pytorch context object TODO
+            grad_output: left-hand multiplicand in VJP TODO
 
         Returns:
             Tuple of derivatives with respect to each input to the forward
@@ -415,6 +410,7 @@ class finufft1D3(torch.autograd.Function):
         _type3_checks(points, values, targets)
 
         # NB: no mode ordering kwarg for type 3
+        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _i_sign = finufftkwargs.pop("isign", -1)
 
         # NOTE: this is passed in as None in the test suite
@@ -431,10 +427,6 @@ class finufft1D3(torch.autograd.Function):
         )
 
         return torch.from_numpy(finufft_out)
-
-    @staticmethod
-    def setup_context(_):
-        raise ValueError("TBD")
 
     @staticmethod
     def backward(ctx, grad_output):

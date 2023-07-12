@@ -52,8 +52,7 @@ def test_1d_t1_forward_CPU(values: torch.tensor) -> None:
         torch.float64 if values.dtype is torch.complex128 else torch.float32
     )
 
-    finufft1D1_out = pytorch_finufft.functional.finufft1D1.forward(
-        None,
+    finufft1D1_out = pytorch_finufft.functional.finufft1D1.apply(
         2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type),
         values,
         N,
@@ -89,12 +88,11 @@ def test_1d_t2_forward_CPU(targets: torch.tensor):
     )
 
     finufft_out = (
-        pytorch_finufft.functional.finufft1D2.forward(
-            None,
+        pytorch_finufft.functional.finufft1D2.apply(
             2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type),
             inv_targets,
-            isign=1,
-            modeord=1,
+            # isign=1,
+            # modeord=1,
         )
         / N
     )
@@ -128,8 +126,8 @@ def test_1d_t3_forward_CPU(values: torch.Tensor):
     print("Targets is of type")
     print(targets.dtype)
 
-    finufft_out = pytorch_finufft.functional.finufft1D3.forward(
-        None, points, values, targets
+    finufft_out = pytorch_finufft.functional.finufft1D3.apply(
+        points, values, targets
     )
 
     against_torch = torch.fft.fft(values)

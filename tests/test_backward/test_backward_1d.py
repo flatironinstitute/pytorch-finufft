@@ -46,17 +46,20 @@ for n in Ns:
 
 
 @pytest.mark.parametrize("values", cases)
-def t1_backward_CPU_values(values: torch.Tensor) -> None:
+def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
     """
     Checks autograd output against a finite difference approximation
     of the functional derivative.
     """
+
+    print("MADE IT TO BACKWARD!")
+
     N = len(values)
 
     values.requires_grad = True
     points = torch.arange(N, requires_grad=False) * (2 * np.pi) / 100
 
-    rind = np.randint(100)
+    rind = np.random.randint(100)
     w = torch.zeros(100)
     w[rind] = 1
     V = torch.randn(N)
@@ -93,51 +96,3 @@ def t1_backward_CPU_values(values: torch.Tensor) -> None:
     grad_desc = pytorch_finufft.functional.finufft1D1.apply(points, d)
 
     assert torch.norm(grad_desc) < norm_out
-
-
-@pytest.mark.parametrize("points", [1])
-def t1_backward_CPU_points(points: torch.Tensor, targets: torch.Tensor) -> None:
-    """
-    Checks autograd output against explicit construction of the Jacobian
-    and the product for small test cases
-    """
-    assert points == 1
-
-
-######################################################################
-# TYPE 2 TESTS
-######################################################################
-
-
-@pytest.mark.parametrize("something", [1])
-def t2_backward_CPU_values(points: torch.Tensor, targets: torch.Tensor) -> None:
-    """
-    Checks autograd output against explicit construction of the Jacobian
-    and the product for small test cases
-    """
-    assert something == 1
-
-
-@pytest.mark.parametrize("something", [1])
-def t2_backward_CPU_points(points: torch.Tensor, targets: torch.Tensor) -> None:
-    """
-    Checks autograd output against a finite difference approximation
-    of the functional derivative.
-    """
-    assert something == 1
-
-
-######################################################################
-# TYPE 1 TESTS
-######################################################################
-
-
-@pytest.mark.parametrize("something", [1])
-def t3_backward_CPU_FD(
-    points: torch.Tensor, values: torch.Tensor, targets: torch.Tensor
-) -> None:
-    """
-    Checks autograd output against finite differences computation
-    """
-
-    assert something == 1

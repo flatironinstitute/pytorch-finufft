@@ -37,7 +37,7 @@ for n in Ns:
 
 # Tests
 @pytest.mark.parametrize("values", cases)
-def test_1d_t1_forward_CPU(values: torch.tensor) -> None:
+def test_1d_t1_forward_CPU(values: torch.Tensor) -> None:
     """
     Tests against implementations of the FFT by setting up a uniform grid over
     which to call FINUFFT through the API.
@@ -73,7 +73,7 @@ def test_1d_t1_forward_CPU(values: torch.tensor) -> None:
 
 
 @pytest.mark.parametrize("targets", cases)
-def test_1d_t2_forward_CPU(targets: torch.tensor):
+def test_1d_t2_forward_CPU(targets: torch.Tensor):
     """
     Test type 2 API against existing implementations by setting
     """
@@ -91,8 +91,6 @@ def test_1d_t2_forward_CPU(targets: torch.tensor):
         pytorch_finufft.functional.finufft1D2.apply(
             2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type),
             inv_targets,
-            # isign=1,
-            # modeord=1,
         )
         / N
     )
@@ -118,13 +116,6 @@ def test_1d_t3_forward_CPU(values: torch.Tensor):
 
     points = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type)
     targets = torch.arange(0, N, dtype=data_type)
-
-    print("Values is of type")
-    print(values.dtype)
-    print("Points is of type")
-    print(points.dtype)
-    print("Targets is of type")
-    print(targets.dtype)
 
     finufft_out = pytorch_finufft.functional.finufft1D3.apply(
         points, values, targets

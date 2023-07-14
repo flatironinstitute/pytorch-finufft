@@ -31,9 +31,7 @@ def _common_type_checks(
             when the input should be complex-valued)
     """
 
-    type3 = False
-    if points is not None and values is not None and targets is not None:
-        type3 = True
+    type3 = (points is not None and values is not None and targets is not None)
 
     # Check all tensors
     if points is not None and not isinstance(points, torch.Tensor):
@@ -169,7 +167,7 @@ class finufft1D1(torch.autograd.Function):
         ctx,
         points: torch.Tensor,
         values: torch.Tensor,
-        output_shape: Optional[int] = None,
+        output_shape: int,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
         **finufftkwargs: Optional[str],
@@ -211,10 +209,6 @@ class finufft1D1(torch.autograd.Function):
         Returns:
             torch.Tensor: The resultant array
         """
-
-        # TODO -- probably want to do away with
-        if output_shape is None and out is None:
-            output_shape = len(points)
 
         _type1_checks(points, values)
 

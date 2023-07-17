@@ -247,6 +247,7 @@ class finufft1D1(torch.autograd.Function):
             In the case that the mode ordering is double-specified with both
             fftshift and the kwarg modeord (only one should be provided).
         """
+
         _type1_checks(points, values)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
@@ -306,6 +307,7 @@ class finufft1D1(torch.autograd.Function):
             # w.r.t. the points x_j
             grad_points = None  # finufft.nufft1d2()
             # TODO: fill this in
+            
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j
             np_points = points.detach().numpy()
@@ -423,24 +425,13 @@ class finufft1D2(torch.autograd.Function):
         _type_
             _description_
         """
-        """
-        Implements gradients for backward mode autograd
-
-        Args:
-            ctx: Pytorch context object TODO
-            grad_output: left-hand multiplicand in VJP TODO
-
-        Returns:
-            Tuple of derivatives with respect to each input to the forward
-                method.
-        """
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         _fftshift = ctx.fftshift
         _finufftkwargs = ctx.finufftkwargs
 
         points, targets = ctx.saved_tensors
-
+        
         grad_points = grad_targets = None
 
         if ctx.needs_input_grad[0]:
@@ -521,7 +512,7 @@ class finufft1D3(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         """
-        _summary_
+        Implements gradients for backward mode automatic differentation
 
         Parameters
         ----------

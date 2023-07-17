@@ -47,7 +47,7 @@ def _common_type_checks(
         In the case that targets is not complex-valued when it should be
     """
 
-    type3 = (points is not None and values is not None and targets is not None)
+    type3 = points is not None and values is not None and targets is not None
 
     # Check all tensors
     if points is not None and not isinstance(points, torch.Tensor):
@@ -267,8 +267,8 @@ class finufft1D1(torch.autograd.Function):
         ctx.save_for_backward(points, values)
 
         finufft_out = finufft.nufft1d1(
-            points.numpy(),
-            values.numpy(),
+            points.detach().numpy(),
+            values.detach().numpy(),
             output_shape,
             modeord=_mode_ordering,
             isign=_i_sign,
@@ -397,8 +397,8 @@ class finufft1D2(torch.autograd.Function):
         ctx.save_for_backward(points, targets)
 
         finufft_out = finufft.nufft1d2(
-            points.numpy(),
-            targets.numpy(),
+            points.detach().numpy(),
+            targets.detach().numpy(),
             modeord=_mode_ordering,
             isign=_i_sign,
             **finufftkwargs,
@@ -422,7 +422,7 @@ class finufft1D2(torch.autograd.Function):
         -------
         _type_
             _description_
-        """        
+        """
         """
         Implements gradients for backward mode autograd
 
@@ -509,9 +509,9 @@ class finufft1D3(torch.autograd.Function):
             ctx.finufftkwargs = finufftkwargs
 
         finufft_out = finufft.nufft1d3(
-            points.numpy(),
-            values.numpy(),
-            targets.numpy(),
+            points.detach().numpy(),
+            values.detach().numpy(),
+            targets.detach().numpy(),
             isign=_i_sign,
             **finufftkwargs,
         )
@@ -534,7 +534,7 @@ class finufft1D3(torch.autograd.Function):
         -------
         TODO [type]
             Tuple of derivatives with respect to each input
-        """        
+        """
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         _fftshift = ctx.fftshift

@@ -12,19 +12,19 @@ T = 1e-5
 # Case generation
 Ns = [
     10,
-    #15,
-    #100,
-    #101,
-    #1000,
-    #1001,
-    #2500,
-    #3750,
-    #5000,
-    #5001,
-    #6250,
-    #7500,
-    #8750,
-    #10000,
+    # 15,
+    # 100,
+    # 101,
+    # 1000,
+    # 1001,
+    # 2500,
+    # 3750,
+    # 5000,
+    # 5001,
+    # 6250,
+    # 7500,
+    # 8750,
+    # 10000,
 ]
 cases = [torch.tensor([1.0, 2.5, -1.0, -1.5, 1.5], dtype=torch.complex128)]
 for n in Ns:
@@ -56,11 +56,13 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
     data_type = (
         torch.float64 if values.dtype is torch.complex128 else torch.float32
     )
-    points = torch.arange(N, dtype=data_type, requires_grad=False) * (2 * np.pi) / N
+    points = (
+        torch.arange(N, dtype=data_type, requires_grad=False) * (2 * np.pi) / N
+    )
 
     rind = np.random.randint(N)
     w = torch.zeros(N, dtype=values.dtype)
-    w[rind] = 1+0j
+    w[rind] = 1 + 0j
     V = torch.randn(N, dtype=data_type)
 
     # Frechet test
@@ -82,10 +84,16 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
 
     # HERE:
     assert torch.dot(w, values.detach().grad) - (
-        torch.abs(pytorch_finufft.functional.finufft1D1.apply(points, values + T * w, N))
+        torch.abs(
+            pytorch_finufft.functional.finufft1D1.apply(
+                points, values + T * w, N
+            )
+        )
         .flatten()
         .dot(V)
-        - torch.abs(pytorch_finufft.functional.finufft1D1.apply(points, values, N))
+        - torch.abs(
+            pytorch_finufft.functional.finufft1D1.apply(points, values, N)
+        )
         .flatten()
         .dot(V)
     ) / T == pytest.approx(0, abs=1e-05)

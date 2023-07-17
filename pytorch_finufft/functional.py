@@ -429,7 +429,7 @@ class finufft1D2(torch.autograd.Function):
         _finufftkwargs = ctx.finufftkwargs
 
         points, targets = ctx.saved_tensors
-        
+
         grad_points = grad_targets = None
 
         if ctx.needs_input_grad[0]:

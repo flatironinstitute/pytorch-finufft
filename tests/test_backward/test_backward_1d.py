@@ -77,8 +77,11 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
     print(values.grad)
     print(w)
 
+    print(values.detach())
+    print(values.detach().grad)
+
     # HERE:
-    assert torch.dot(w, values.grad) - (
+    assert torch.dot(w, values.detach().grad) - (
         torch.abs(pytorch_finufft.functional.finufft1D1.apply(points, values + T * w, N))
         .flatten()
         .dot(V)

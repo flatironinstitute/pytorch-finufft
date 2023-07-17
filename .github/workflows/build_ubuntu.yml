@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v3
@@ -16,24 +16,25 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install poetry
-      run: make poetry-download
-
     - name: Set up cache
       uses: actions/cache@v3.3.1
       with:
         path: .venv
         key: venv-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
-
+        
     - name: Install dependencies
       run: |
-        poetry config virtualenvs.in-project true
-        poetry install
-
-    - name: Run style checks
+        python -m pip install --upgrade pip
+        pip install ruff pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Lint with ruff
       run: |
-        make check-codestyle
-
-    - name: Run tests
+        # stop the build if there are Python syntax errors or undefined names
+        ruff --format=github --select=E9,F63,F7,F82 --target-version=py37 .
+        # default set of ruff rules with GitHub Annotations
+        ruff --format=github --target-version=py37 .
+        
+    - name: Test with pytest
       run: |
-        make test
+        pytest

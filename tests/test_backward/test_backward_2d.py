@@ -5,5 +5,3 @@ import torch
 from numpy.random import standard_normal
 
 import pytorch_finufft
-
-

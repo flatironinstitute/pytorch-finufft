@@ -21,8 +21,23 @@ repos:
 
   - repo: local
     hooks:
-      - id: codestyle
-        name: codestyle
-        entry: make check-codestyle
+      - id: black
+        name: black
+        entry: black .
+        types: [python]
+        language: system
+      - id: isort
+        name: isort
+        entry: isort pytorch_finufft/
+        types: [python]
+        language: system
+      - id: ruff
+        name: ruff
+        entry: ruff --format=github --select=E9,F63,F7,F82 --target-version=py39 pytorch_finufft
+        types: [python]
+        language: system
+      - id: darglint
+        name: darglint
+        entry: darglint .
         types: [python]
         language: system

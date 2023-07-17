@@ -38,7 +38,6 @@ repos:
         language: system
       - id: darglint
         name: darglint
-        entry: ruff --format=github --select=E9,F63,F7,F82 --target-version=py39 pytorch_finufft
+        entry: darglint .
         types: [python]
         language: system
-  

@@ -304,8 +304,28 @@ class finufft1D1(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # w.r.t. the points x_j
-            grad_points = None  # finufft.nufft1d2()
-            # TODO: fill this in
+            np_points = points.detach().numpy()
+            np_grad_output = grad_output.numpy()
+
+            k_ramp = torch.arange(0, grad_output.shape[-1])
+            if _mode_ordering == 0:
+                # NOTE: kramp should be fft-shifted in this case
+                k_ramp = torch.fft.fftshift(k_ramp)
+
+            ramped_grad_output = k_ramp * np_grad_output
+
+            grad_points = torch.from_numpy(
+                finufft.nufft1d2(
+                    np_points,
+                    ramped_grad_output,
+                    isign=_i_sign,
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            )
+
+            grad_points *= values
+
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j
             np_points = points.detach().numpy()

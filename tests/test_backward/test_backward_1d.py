@@ -83,7 +83,7 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
     print(values.detach().grad)
 
     # HERE:
-    assert torch.dot(w, values.detach().grad) - (
+    assert torch.dot(w, values.grad) - (
         torch.abs(
             pytorch_finufft.functional.finufft1D1.apply(
                 points, values + T * w, N
@@ -112,3 +112,17 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
     grad_desc = pytorch_finufft.functional.finufft1D1.apply(points, d)
 
     assert torch.norm(grad_desc) < norm_out
+
+
+@pytest.mark.parametrize("points", cases)
+def test_t1_backward_CPU_points(points: torch.Tensor) -> None:
+    """
+    Checks autograd output against a finite difference approximation
+    of the functional derivative.
+    """
+
+    # Frechet test
+
+    # Gradient descent test
+
+    pass

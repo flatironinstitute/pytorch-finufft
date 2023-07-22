@@ -340,25 +340,18 @@ class finufft1D1(torch.autograd.Function):
 
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j
-            # np_points = points.data.numpy()
-            # np_grad_output = grad_output.data.numpy()
-            # print(type(points.data))
-            np_points = torch.clone(points.data).numpy()
-            # print("FINE 1 -- backward")
-            np_grad_output = torch.clone(grad_output.data).numpy()
-            # print("FINE 2 -- backward")
+            np_points = (points.data).numpy()
+            np_grad_output = (grad_output.data).numpy()
 
-            grad_values = -1 * torch.conj(
-                torch.from_numpy(
+            grad_values = torch.from_numpy(
                     finufft.nufft1d2(
                         np_points,
                         np_grad_output,
-                        isign=_i_sign,
+                        isign=(-1 * _i_sign),
                         modeord=_mode_ordering,
                         **finufftkwargs,
                     )
                 )
-            )
 
         return grad_points, grad_values, None, None, None, None
 

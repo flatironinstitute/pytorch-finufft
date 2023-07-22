@@ -96,9 +96,19 @@ def _type1_checks(points: torch.Tensor, values: torch.Tensor) -> None:
             "Precisions must match; since points is torch.float32, values must be torch.complex64 for single precision"
         )
 
+    if values.dtype is torch.complex64 and points.dtype is not torch.float32:
+        raise TypeError(
+            "Precisions must match; since points is torch.complex64, values must be torch.float32 for single precision"
+        )
+
     if points.dtype is torch.float64 and values.dtype is not torch.complex128:
         raise TypeError(
             "Precisions must match; since points is torch.float64, values must be torch.complex128 for double precision"
+        )
+
+    if values.dtype is torch.complex128 and points.dtype is not torch.float64:
+        raise TypeError(
+            "Precisions must match; since values is torch.complex1238, points must be torch.float64 for single precision"
         )
 
     # Check that sizes match
@@ -267,8 +277,8 @@ class finufft1D1(torch.autograd.Function):
         ctx.save_for_backward(points, values)
 
         finufft_out = finufft.nufft1d1(
-            points.detach().numpy(),
-            values.detach().numpy(),
+            points.data.numpy(),
+            values.data.numpy(),
             output_shape,
             modeord=_mode_ordering,
             isign=_i_sign,
@@ -304,8 +314,10 @@ class finufft1D1(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # w.r.t. the points x_j
-            np_points = points.detach().numpy()
-            np_grad_output = grad_output.numpy()
+            # np_points = points.data.numpy()
+            # np_grad_output = grad_output.data.numpy()
+            np_points = points.data
+            np_grad_output = grad_output.data
 
             k_ramp = torch.arange(0, grad_output.shape[-1])
             if _mode_ordering == 0:
@@ -318,7 +330,7 @@ class finufft1D1(torch.autograd.Function):
                 finufft.nufft1d2(
                     np_points,
                     ramped_grad_output,
-                    isign=_i_sign,
+                    isign=(-1 * _i_sign),
                     modeord=_mode_ordering,
                     **finufftkwargs,
                 )
@@ -328,16 +340,23 @@ class finufft1D1(torch.autograd.Function):
 
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j
-            np_points = points.detach().numpy()
-            np_grad_output = grad_output.numpy()
+            # np_points = points.data.numpy()
+            # np_grad_output = grad_output.data.numpy()
+            # print(type(points.data))
+            np_points = torch.clone(points.data).numpy()
+            # print("FINE 1 -- backward")
+            np_grad_output = torch.clone(grad_output.data).numpy()
+            # print("FINE 2 -- backward")
 
-            grad_values = torch.from_numpy(
-                finufft.nufft1d2(
-                    np_points,
-                    np_grad_output,
-                    isign=_i_sign,
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
+            grad_values = -1 * torch.conj(
+                torch.from_numpy(
+                    finufft.nufft1d2(
+                        np_points,
+                        np_grad_output,
+                        isign=_i_sign,
+                        modeord=_mode_ordering,
+                        **finufftkwargs,
+                    )
                 )
             )
 

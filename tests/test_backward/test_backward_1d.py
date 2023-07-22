@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import torch
+from torch.autograd import gradcheck
 
 import pytorch_finufft
 
@@ -12,30 +13,33 @@ T = 1e-5
 # Case generation
 Ns = [
     10,
-    # 15,
-    # 100,
-    # 101,
-    # 1000,
-    # 1001,
-    # 2500,
-    # 3750,
-    # 5000,
-    # 5001,
-    # 6250,
-    # 7500,
-    # 8750,
-    # 10000,
+    15,
+    100,
+    101,
 ]
 cases = [torch.tensor([1.0, 2.5, -1.0, -1.5, 1.5], dtype=torch.complex128)]
 for n in Ns:
-    cases.append(
-        torch.randn(n, dtype=torch.float64)
-        + 1j * torch.randn(n, dtype=torch.float64)
+    cases.append(torch.randn(n, dtype=torch.complex128))
+
+######################################################################
+# APPLY WRAPPERS
+######################################################################
+
+
+def apply_finufft1d1(
+    points: torch.Tensor, values: torch.Tensor
+) -> torch.Tensor:
+    """Wrappper around finufft1D1.apply(...)"""
+    return pytorch_finufft.functional.finufft1D1.apply(
+        points, values, len(values)
     )
-    cases.append(
-        torch.randn(n, dtype=torch.float32)
-        + 1j * torch.randn(n, dtype=torch.float32)
-    )
+
+
+def apply_finufft1d2(
+    points: torch.Tensor, targets: torch.Tensor
+) -> torch.Tensor:
+    """Wrapper around finufft1D2.apply(...)"""
+    return pytorch_finufft.functional.finufft1D2.apply(points, targets)
 
 
 ######################################################################
@@ -46,83 +50,55 @@ for n in Ns:
 @pytest.mark.parametrize("values", cases)
 def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
     """
-    Checks autograd output against a finite difference approximation
-    of the functional derivative.
+    Uses gradcheck to test the correctness of the implementation
+    of the values gradients for NUFFT type 2 in functional
     """
-
     N = len(values)
+    points = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+
     values.requires_grad = True
+    points.requires_grad = False
 
-    data_type = (
-        torch.float64 if values.dtype is torch.complex128 else torch.float32
-    )
-    points = (
-        torch.arange(N, dtype=data_type, requires_grad=False) * (2 * np.pi) / N
-    )
+    inputs = (points, values)
 
-    rind = np.random.randint(N)
-    w = torch.zeros(N, dtype=values.dtype)
-    w[rind] = 1 + 0j
-    V = torch.randn(N, dtype=data_type)
-
-    # Frechet test
-
-    out = pytorch_finufft.functional.finufft1D1.apply(points, values, N)
-    assert out.dtype is values.dtype
-    JAC_w_F = torch.abs(out).flatten().dot(V)
-
-    assert values.grad is None
-    JAC_w_F.backward()
-    assert values.grad is not None
-
-    print("VALUES")
-    print(values.grad)
-    print(w)
-
-    print(values.detach())
-    print(values.detach().grad)
-
-    # HERE:
-    assert torch.dot(w, values.grad) - (
-        torch.abs(
-            pytorch_finufft.functional.finufft1D1.apply(
-                points, values + T * w, N
-            )
-        )
-        .flatten()
-        .dot(V)
-        - torch.abs(
-            pytorch_finufft.functional.finufft1D1.apply(points, values, N)
-        )
-        .flatten()
-        .dot(V)
-    ) / T == pytest.approx(0, abs=1e-05)
-
-    # Gradient descent test
-    out = pytorch_finufft.functional.finufft1D1.apply(points, values, N)
-    assert out.dtype is torch.complex64
-
-    norm_out = torch.norm(out)
-    assert values.grad is None
-
-    norm_out.backward()
-    assert values.grad is not None
-
-    d = values - (1e-6 * values.grad)
-    grad_desc = pytorch_finufft.functional.finufft1D1.apply(points, d)
-
-    assert torch.norm(grad_desc) < norm_out
+    gradcheck(apply_finufft1d1, inputs)
 
 
-@pytest.mark.parametrize("points", cases)
-def test_t1_backward_CPU_points(points: torch.Tensor) -> None:
+@pytest.mark.parametrize("values", cases)
+def test_t1_backward_CPU_points(values: torch.Tensor) -> None:
     """
-    Checks autograd output against a finite difference approximation
-    of the functional derivative.
+    Uses gradcheck to test the correctness of the implementation
+    of the points gradients for NUFFT type 2 in functional
     """
+    N = len(values)
+    points = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
 
-    # Frechet test
+    values.requires_grad = False
+    points.requires_grad = True
 
-    # Gradient descent test
+    inputs = (points, values)
 
+    assert gradcheck(apply_finufft1d1, inputs)
+
+
+######################################################################
+# TYPE 2 TESTS
+######################################################################
+
+
+@pytest.mark.parametrize("targets", cases)
+def test_t2_forward_CPU_targets(targets: torch.Tensor) -> None:
+    """
+    Uses gradcheck to test the correctness of the implementation of
+    targets gradients for NUFFT type 2 in functional.
+    """
+    pass
+
+
+@pytest.mark.parametrize("targets", cases)
+def test_t2_forward_CPU_points(targets: torch.Tensor) -> None:
+    """
+    Uses gradcheck to test the correctness of the implementation of
+    targets gradients for NUFFT type 2 in functional.
+    """
     pass

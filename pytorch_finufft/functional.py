@@ -344,14 +344,14 @@ class finufft1D1(torch.autograd.Function):
             np_grad_output = (grad_output.data).numpy()
 
             grad_values = torch.from_numpy(
-                    finufft.nufft1d2(
-                        np_points,
-                        np_grad_output,
-                        isign=(-1 * _i_sign),
-                        modeord=_mode_ordering,
-                        **finufftkwargs,
-                    )
+                finufft.nufft1d2(
+                    np_points,
+                    np_grad_output,
+                    isign=(-1 * _i_sign),
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
                 )
+            )
 
         return grad_points, grad_values, None, None, None, None
 

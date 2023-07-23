@@ -10,16 +10,18 @@ torch.set_default_dtype(torch.float64)
 
 T = 1e-5
 
-# Case generation
 Ns = [
     10,
     15,
     100,
     101,
 ]
+
 cases = [torch.tensor([1.0, 2.5, -1.0, -1.5, 1.5], dtype=torch.complex128)]
+
 for n in Ns:
     cases.append(torch.randn(n, dtype=torch.complex128))
+
 
 ######################################################################
 # APPLY WRAPPERS
@@ -29,7 +31,7 @@ for n in Ns:
 def apply_finufft1d1(
     points: torch.Tensor, values: torch.Tensor
 ) -> torch.Tensor:
-    """Wrappper around finufft1D1.apply(...)"""
+    """ Wrappper around finufft1D1.apply(...) """
     return pytorch_finufft.functional.finufft1D1.apply(
         points, values, len(values)
     )
@@ -38,7 +40,7 @@ def apply_finufft1d1(
 def apply_finufft1d2(
     points: torch.Tensor, targets: torch.Tensor
 ) -> torch.Tensor:
-    """Wrapper around finufft1D2.apply(...)"""
+    """ Wrapper around finufft1D2.apply(...) """
     return pytorch_finufft.functional.finufft1D2.apply(points, targets)
 
 
@@ -61,7 +63,7 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
 
     inputs = (points, values)
 
-    gradcheck(apply_finufft1d1, inputs)
+    assert gradcheck(apply_finufft1d1, inputs)
 
 
 @pytest.mark.parametrize("values", cases)

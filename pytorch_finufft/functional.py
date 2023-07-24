@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import finufft
 import torch
@@ -315,27 +315,29 @@ class finufft1D1(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             # w.r.t. the points x_j
 
-            k_ramp = torch.arange(0, grad_output.shape[-1], dtype=points.dtype)
-            if _mode_ordering == 0:
-                # NOTE: kramp should be fft-shifted in this case
-                k_ramp = torch.fft.fftshift(k_ramp)
+            # k_ramp = torch.arange(0, grad_output.shape[-1], dtype=points.dtype)
+            # if _mode_ordering == 0:
+            #     # NOTE: kramp should be fft-shifted in this case
+            #     k_ramp = torch.fft.fftshift(k_ramp)
 
-            ramped_grad_output = k_ramp * grad_output
+            # ramped_grad_output = k_ramp * grad_output
 
-            np_points = (points.data).numpy()
-            np_grad_output = (ramped_grad_output.data).numpy()
+            # np_points = (points.data).numpy()
+            # np_grad_output = (ramped_grad_output.data).numpy()
 
-            grad_points = torch.from_numpy(
-                finufft.nufft1d2(
-                    np_points,
-                    np_grad_output,
-                    isign=(-1 * _i_sign),
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
-                )
-            ).to(values.dtype)
+            # grad_points = torch.from_numpy(
+            #     finufft.nufft1d2(
+            #         np_points,
+            #         np_grad_output,
+            #         isign=(-1 * _i_sign),
+            #         modeord=_mode_ordering,
+            #         **finufftkwargs,
+            #     )
+            # ).to(values.dtype)
 
-            grad_points *= values
+            # grad_points *= values
+
+            pass
 
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j
@@ -529,9 +531,9 @@ class finufft1D3(torch.autograd.Function):
             ctx.finufftkwargs = finufftkwargs
 
         finufft_out = finufft.nufft1d3(
-            points.detach().numpy(),
-            values.detach().numpy(),
-            targets.detach().numpy(),
+            points.data.numpy(),
+            values.data.numpy(),
+            targets.data.numpy(),
             isign=_i_sign,
             **finufftkwargs,
         )
@@ -583,85 +585,74 @@ class finufft2D1(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        points: torch.Tensor,
+        points_x: torch.Tensor,
+        points_y: torch.Tensor,
         values: torch.Tensor,
-        output_shape: int,
+        output_shape: Union[int, tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
         **finufftkwargs: Optional[str],
     ) -> torch.Tensor:
         """
-        Evaluates the Type 1 NUFFT on the inputs.
-
-        NOTE: By default, the ordering is set to match that of Pytorch,
-         Numpy, and Scipy's FFT APIs. To match the mode ordering
-         native to FINUFFT, set `fftshift = True`.
-        ```
-                M-1
-        f[k1] = SUM c[j] exp(+/-i k1 x(j))
-                j=0
-
-            for -N1/2 <= k1 <= (N1-1)/2
-        ```
-
-        Parameters
-        ----------
-        ctx : TODO [WHAT IS THE TYPE OF THIS???]
-            PyTorch context object
-        points : torch.Tensor
-            The non-uniform points x_j. Valid only between -3pi and 3pi.
-        values : torch.Tensor
-            The source strengths c_j.
-        output_shape : int
-            Number of Fourier modes to use in the computation (which
-            coincides with the length of the resultant array).
-        out : Optional[torch.Tensor], optional
-            Array to populate with result in-place, by default None
-        fftshift : bool, optional
-            If True, centers the 0 mode in the resultant torch.Tensor; by default False
-        **finufftkwargs : Optional[str] TODO
-            TODO  -- how to document?
-
-        Returns
-        -------
-        torch.Tensor
-            The resultant array f[k]
-
-        Raises
-        ------
-        ValueError
-            In the case that the mode ordering is double-specified with both
-            fftshift and the kwarg modeord (only one should be provided).
+        TODO
         """
-        _type1_checks(points, values)
+
+        # TODO -- this error handling could be better
+        if points_x.dtype is not points_y.dtype:
+            raise TypeError(
+                "Point tensors in the x- and y-direction must have the same dtype."
+            )
+        _type1_checks(points_x, values)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)
 
         if fftshift:
+            # TODO -- this check should be done elsewhere? or error msg changed
+            #   to note instead that there is a conflict in fftshift
             if _mode_ordering != 1:
                 raise ValueError(
                     "Double specification of ordering; only one of fftshift and modeord should be provided"
                 )
             _mode_ordering = 0
 
-        ctx.isign = _i_sign
-        ctx.mode_ordering = _mode_ordering
-        ctx.finufftkwargs = finufftkwargs
+        return torch.ones(10)
 
-        ctx.save_for_backward(points, values)
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor):
+        """
+        Implements gradients for backward mode automatic differentiation
 
-        finufft_out = finufft.nufft1d1(
-            points.data.numpy(),
-            values.data.numpy(),
-            output_shape,
-            modeord=_mode_ordering,
-            isign=_i_sign,
-            **finufftkwargs,
-        )
+        Parameters
+        ----------
+        ctx : TODO
+            TODO PyTorch context object
+        grad_output : torch.Tensor
+            TODO VJP output
 
-        return torch.from_numpy(finufft_out)
+        Returns
+        -------
+        TODO [type]
+            Tuple of derivatives with respect to each input
+        """
+        pass
+
+
+class finufft2D2(torch.autograd.Function):
+    """
+    FINUFFT 2D problem type 2
+    """
+
+    @staticmethod
+    def forward(
+        ctx,
+    ) -> torch.Tensor:
+        """
+        TODO
+        """
+
+        return torch.ones(10)
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor):
@@ -681,54 +672,40 @@ class finufft2D1(torch.autograd.Function):
             Tuple of derivatives with respect to each input
         """
 
-        _i_sign = ctx.isign
-        _mode_ordering = ctx.mode_ordering
-        finufftkwargs = ctx.finufftkwargs
+        pass
 
-        points, values = ctx.saved_tensors
-        grad_points = grad_values = None
 
-        if ctx.needs_input_grad[0]:
-            # w.r.t. the points x_j
-            np_points = points.data.numpy()
-            np_grad_output = grad_output.data.numpy()
+class finufft2D3(torch.autograd.Function):
+    """
+    FINUFFT 2D problem type 3
+    """
 
-            # TODO
-            print("POINTS type: " + str(type(np_points)))
-            print("GRAD_OUTPUT type: " + str(type(np_grad_output)))
+    @staticmethod
+    def forward(
+        ctx,
+    ) -> torch.Tensor:
+        """
+        TODO
+        """
 
-            k_ramp = np.arange(0, grad_output.shape[-1], dtype=np_grad_output.dtype)
-            if _mode_ordering == 0:
-                # NOTE: kramp should be fft-shifted in this case
-                k_ramp = torch.fft.fftshift(k_ramp)
+        return torch.ones(10)
 
-            ramped_grad_output = k_ramp * np_grad_output
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor):
+        """
+        Implements gradients for backward mode automatic differentiation
 
-            grad_points = torch.from_numpy(
-                finufft.nufft1d2(
-                    np_points,
-                    ramped_grad_output,
-                    isign=(-1 * _i_sign),
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
-                )
-            )
+        Parameters
+        ----------
+        ctx : TODO
+            TODO PyTorch context object
+        grad_output : torch.Tensor
+            TODO VJP output
 
-            grad_points *= values
+        Returns
+        -------
+        TODO [type]
+            Tuple of derivatives with respect to each input
+        """
 
-        if ctx.needs_input_grad[1]:
-            # w.r.t. the values c_j
-            np_points = (points.data).numpy()
-            np_grad_output = (grad_output.data).numpy()
-
-            grad_values = torch.from_numpy(
-                finufft.nufft1d2(
-                    np_points,
-                    np_grad_output,
-                    isign=(-1 * _i_sign),
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
-                )
-            )
-
-        return grad_points, grad_values, None, None, None, None
+        pass

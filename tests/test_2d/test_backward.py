@@ -114,3 +114,63 @@ def test_t1_backward_CPU_points_y(N: int) -> None:
 ######################################################################
 # TYPE 2 TESTS
 ######################################################################
+
+
+@pytest.mark.parametrize("N", Ns)
+def test_t2_backward_CPU_targets(N: int) -> None:
+    """
+    Uses gradcheck to test the correctness of the implemntation
+    of the derivative in targets for 2d NUFFT type 2
+    """
+
+    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    targets = torch.randn(2*N)
+
+    points_x.requires_grad = False
+    points_y.requires_grad = False
+    targets.requires_grad = True
+
+    inputs = (points_x, points_y, targets)
+
+    assert gradcheck(apply_finufft2d2, inputs)
+
+
+@pytest.mark.parametrize("N", Ns)
+def test_t2_backward_CPU_points_x(N: int) -> None:
+    """
+    Uses gradcheck to test the correctness of the implemntation
+    of the derivative in targets for 2d NUFFT type 2
+    """
+
+    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    targets = torch.randn(2*N)
+
+    points_x.requires_grad = True
+    points_y.requires_grad = False
+    targets.requires_grad = False
+
+    inputs = (points_x, points_y, targets)
+
+    assert gradcheck(apply_finufft2d2, inputs)
+
+
+@pytest.mark.parametrize("N", Ns)
+def test_t2_backward_CPU_points_y(N: int) -> None:
+    """
+    Uses gradcheck to test the correctness of the implemntation
+    of the derivative in targets for 2d NUFFT type 2
+    """
+
+    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    targets = torch.randn(2*N)
+
+    points_x.requires_grad = False
+    points_y.requires_grad = True
+    targets.requires_grad = False
+
+    inputs = (points_x, points_y, targets)
+
+    assert gradcheck(apply_finufft2d2, inputs)

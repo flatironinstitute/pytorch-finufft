@@ -104,7 +104,7 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
 
 
 @pytest.mark.parametrize("values", cases)
-def test_1d_t3_forward_CPU(values: torch.Tensor):
+def test_1d_t3_forward_CPU(values: torch.Tensor) -> None:
     """
     Test type 3 API against existing implementations
     """

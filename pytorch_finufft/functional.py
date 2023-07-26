@@ -617,7 +617,19 @@ class finufft2D1(torch.autograd.Function):
                 )
             _mode_ordering = 0
 
-        return torch.ones(10)
+        finufft_out = torch.from_numpy(
+            finufft.nufft2d1(
+                points_x.data.numpy(),
+                points_y.data.numpy(),
+                values.data.numpy(),
+                output_shape,
+                modeord=_mode_ordering,
+                isign=_i_sign,
+                **finufftkwargs,
+            )
+        )
+
+        return finufft_out
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor):

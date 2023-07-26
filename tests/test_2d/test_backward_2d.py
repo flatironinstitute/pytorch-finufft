@@ -18,7 +18,7 @@ torch.set_default_dtype(torch.float64)
 def apply_finufft2d1(
     points_x: torch.Tensor, points_y: torch.Tensor, values: torch.Tensor
 ) -> torch.Tensor:
-    """ Wrapper around finufft2D1.apply(...) """
+    """Wrapper around finufft2D1.apply(...)"""
     return pytorch_finufft.functional.finufft2D1.apply(
         points_x, points_y, values, len(values)
     )
@@ -27,7 +27,7 @@ def apply_finufft2d1(
 def apply_finufft2d2(
     points_x: torch.Tensor, points_y: torch.Tensor, targets: torch.Tensor
 ) -> torch.Tensor:
-    """ Wrapper around finufft2D1.apply(...) """
+    """Wrapper around finufft2D1.apply(...)"""
     return pytorch_finufft.functional.finufft2D1.apply(
         points_x, points_y, targets
     )
@@ -58,8 +58,8 @@ def test_t1_backward_CPU_values(N: int) -> None:
     Uses gradcheck to test the correctness of the implementation
     of the derivative in values for 2d NUFFT type 1
     """
-    points_x = 2 * np.pi * torch.arange(0, 1, 1/N)
-    points_y = 2 * np.pi * torch.arange(0, 1, 1/N)
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N)
     values = torch.rand(N, dtype=torch.complex128)
 
     points_x.requires_grad = False
@@ -78,8 +78,8 @@ def test_t1_backward_CPU_points_x(N: int) -> None:
     of the derivative in points_x for 2d NUFFT type 1
     """
 
-    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N)/2))
-    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     values = torch.randn(N)
 
     points_x.requires_grad = True
@@ -98,8 +98,8 @@ def test_t1_backward_CPU_points_y(N: int) -> None:
     of the derivative in points_y for 2d NUFFT type 1
     """
 
-    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
-    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N)/2))
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
     values = torch.randn(N)
 
     points_x.requires_grad = False

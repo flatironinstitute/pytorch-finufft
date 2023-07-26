@@ -103,7 +103,7 @@ def test_t2_forward_CPU_targets(N: int) -> None:
     Uses gradcheck to test the correctness of the implementation of
     targets gradients for NUFFT type 2 in functional.
     """
-    points = 2 * np.pi * torch.arange(0, 1, 1/10, dtype=torch.float64)
+    points = 2 * np.pi * torch.arange(0, 1, 1 / 10, dtype=torch.float64)
 
     targets = torch.randn(N)
 

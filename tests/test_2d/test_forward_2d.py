@@ -77,15 +77,15 @@ def test_2d_t2_forward_CPU(N: int) -> None:
 
     values = torch.randn(*g[0].shape, dtype=torch.complex128)
 
-    finufft_out = (pytorch_finufft.functional.finufft2D2.apply(
-        torch.from_numpy(x),
-        torch.from_numpy(y),
-        values
-    )).reshape(g[0].shape) / (N**2)
+    finufft_out = (
+        pytorch_finufft.functional.finufft2D2.apply(
+            torch.from_numpy(x), torch.from_numpy(y), values
+        )
+    ).reshape(g[0].shape) / (N**2)
 
     against_torch = torch.fft.ifft2(values)
 
-    assert abs((finufft_out-against_torch).sum()) / (N**3) == pytest.approx(
+    assert abs((finufft_out - against_torch).sum()) / (N**3) == pytest.approx(
         0, abs=1e-6
     )
 
@@ -95,22 +95,23 @@ def test_2d_t2_forward_CPU(N: int) -> None:
     # single precision test
     values = torch.randn(*g[0].shape, dtype=torch.complex64)
 
-    finufft_out = (pytorch_finufft.functional.finufft2D2.apply(
-        torch.from_numpy(x).to(torch.float32),
-        torch.from_numpy(y).to(torch.float32),
-        values
-    )).reshape(g[0].shape) / (N**2)
+    finufft_out = (
+        pytorch_finufft.functional.finufft2D2.apply(
+            torch.from_numpy(x).to(torch.float32),
+            torch.from_numpy(y).to(torch.float32),
+            values,
+        )
+    ).reshape(g[0].shape) / (N**2)
 
     against_torch = torch.fft.ifft2(values)
 
-    assert abs((finufft_out-against_torch).sum()) / (N**3) == pytest.approx(
+    assert abs((finufft_out - against_torch).sum()) / (N**3) == pytest.approx(
         0, abs=1e-6
     )
 
 
 @pytest.mark.parametrize("N", Ns)
 def test_2d_t3_forward_CPU(N: int) -> None:
-
     g = np.mgrid[:3, :3] * 2 * np.pi / 3
     x, y = g.reshape(2, -1)
 
@@ -120,8 +121,6 @@ def test_2d_t3_forward_CPU(N: int) -> None:
 
     comparison = np.fft.ifft2(values)
 
-    assert abs((f-comparison).sum()) / (N**3) == pytest.approx(
-        0, abs=1e-6
-    )
+    assert abs((f - comparison).sum()) / (N**3) == pytest.approx(0, abs=1e-6)
 
     pass

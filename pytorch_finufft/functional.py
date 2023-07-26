@@ -608,9 +608,7 @@ class finufft2D1(torch.autograd.Function):
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)
 
-        ctx.save_for_backward(
-            points_x, points_y, values
-        )
+        ctx.save_for_backward(points_x, points_y, values)
 
         if fftshift:
             # TODO -- this check should be done elsewhere? or error msg changed
@@ -682,7 +680,7 @@ class finufft2D1(torch.autograd.Function):
                     np_grad_output,
                     isign=(-1 * _i_sign),
                     modeord=_mode_ordering,
-                    **finufftkwargs
+                    **finufftkwargs,
                 )
             )
 
@@ -713,7 +711,7 @@ class finufft2D2(torch.autograd.Function):
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", 1)
-    
+
         if fftshift:
             if _mode_ordering != 1:
                 raise ValueError(
@@ -740,7 +738,9 @@ class finufft2D2(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def backward(ctx, grad_output: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, None, None, None]:
+    def backward(
+        ctx, grad_output: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, None, None, None]:
         """
         Implements gradients for backward mode automatic differentiation
 
@@ -757,7 +757,14 @@ class finufft2D2(torch.autograd.Function):
             Tuple of derivatives with respect to each input
         """
 
-        return torch.zeros(10), torch.zeros(10), torch.zeros(10), None, None, None
+        return (
+            torch.zeros(10),
+            torch.zeros(10),
+            torch.zeros(10),
+            None,
+            None,
+            None,
+        )
 
 
 class finufft2D3(torch.autograd.Function):
@@ -773,7 +780,6 @@ class finufft2D3(torch.autograd.Function):
         values: torch.Tensor,
         targets_s: torch.Tensor,
         targets_t: torch.Tensor,
-
     ) -> torch.Tensor:
         """
         TODO
@@ -907,7 +913,7 @@ class finufft3D2(torch.autograd.Function):
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", 1)
-    
+
         if fftshift:
             if _mode_ordering != 1:
                 raise ValueError(
@@ -934,7 +940,9 @@ class finufft3D2(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def backward(ctx, grad_output: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, None, None, None]:
+    def backward(
+        ctx, grad_output: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, None, None, None]:
         """
         Implements gradients for backward mode automatic differentiation
 
@@ -951,7 +959,14 @@ class finufft3D2(torch.autograd.Function):
             Tuple of derivatives with respect to each input
         """
 
-        return torch.zeros(10), torch.zeros(10), torch.zeros(10), None, None, None
+        return (
+            torch.zeros(10),
+            torch.zeros(10),
+            torch.zeros(10),
+            None,
+            None,
+            None,
+        )
 
 
 class finufft3D3(torch.autograd.Function):

@@ -102,7 +102,7 @@ def test_t2_backward_CPU_targets(N: int) -> None:
     Uses gradcheck to test the correctness of the implementation of
     targets gradients for NUFFT type 2 in functional.
     """
-    points = 2 * np.pi * torch.arange(0, 1, 1 / 10, dtype=torch.float64)
+    points = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
 
     targets = torch.randn(N, dtype=torch.complex128)
 
@@ -111,7 +111,7 @@ def test_t2_backward_CPU_targets(N: int) -> None:
 
     inputs = (points, targets)
 
-    assert gradcheck(apply_finufft1d1, inputs)
+    assert gradcheck(apply_finufft1d2, inputs)
 
 
 @pytest.mark.parametrize("points", cases)

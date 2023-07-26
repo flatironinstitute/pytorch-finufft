@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
-import scipy
 import torch
-from numpy.random import standard_normal
 from torch.autograd import gradcheck
 
 import pytorch_finufft
@@ -80,7 +78,7 @@ def test_t1_backward_CPU_points_x(N: int) -> None:
 
     points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    values = torch.randn(N)
+    values = torch.randn(N, dtype=torch.complex128)
 
     points_x.requires_grad = True
     points_y.requires_grad = False
@@ -100,7 +98,7 @@ def test_t1_backward_CPU_points_y(N: int) -> None:
 
     points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-    values = torch.randn(N)
+    values = torch.randn(N, dtype=torch.complex128)
 
     points_x.requires_grad = False
     points_y.requires_grad = True
@@ -123,9 +121,9 @@ def test_t2_backward_CPU_targets(N: int) -> None:
     of the derivative in targets for 2d NUFFT type 2
     """
 
-    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
-    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
-    targets = torch.randn(2*N)
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    targets = torch.randn(2 * N, dtype=torch.complex128)
 
     points_x.requires_grad = False
     points_y.requires_grad = False
@@ -134,6 +132,8 @@ def test_t2_backward_CPU_targets(N: int) -> None:
     inputs = (points_x, points_y, targets)
 
     assert gradcheck(apply_finufft2d2, inputs)
+
+    # TODO -- have it test also over uneven points_x and points_y
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -144,8 +144,8 @@ def test_t2_backward_CPU_points_x(N: int) -> None:
     """
 
     points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
-    targets = torch.randn(2*N)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    targets = torch.randn(2 * N, dtype=torch.complex128)
 
     points_x.requires_grad = True
     points_y.requires_grad = False
@@ -163,9 +163,9 @@ def test_t2_backward_CPU_points_y(N: int) -> None:
     of the derivative in targets for 2d NUFFT type 2
     """
 
-    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-    targets = torch.randn(2*N)
+    targets = torch.randn(2 * N, dtype=torch.complex128)
 
     points_x.requires_grad = False
     points_y.requires_grad = True

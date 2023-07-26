@@ -458,8 +458,7 @@ class finufft1D2(torch.autograd.Function):
         """
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
-        _fftshift = ctx.fftshift
-        _finufftkwargs = ctx.finufftkwargs
+        finufftkwargs = ctx.finufftkwargs
 
         points, targets = ctx.saved_tensors
 
@@ -468,7 +467,19 @@ class finufft1D2(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             grad_points = None
         if ctx.needs_input_grad[1]:
-            grad_targets = None
+            np_points = points.data.numpy()
+            np_grad_output = grad_output.data.numpy()
+
+            grad_targets = torch.from_numpy(
+                finufft.nufft1d1(
+                    np_points,
+                    np_grad_output,
+                    len(np_points),
+                    modeord=_mode_ordering,
+                    isign=(-1 * _i_sign),
+                    **finufftkwargs,
+                )
+            )
 
         return grad_points, grad_targets, None, None, None
 
@@ -740,7 +751,14 @@ class finufft2D2(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx, grad_output: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, None, None, None]:
+    ) -> tuple[
+        Union[torch.Tensor, None],
+        Union[torch.Tensor, None],
+        Union[torch.Tensor, None],
+        None,
+        None,
+        None,
+    ]:
         """
         Implements gradients for backward mode automatic differentiation
 
@@ -757,10 +775,48 @@ class finufft2D2(torch.autograd.Function):
             Tuple of derivatives with respect to each input
         """
 
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+        fftshift = ctx.fftshift
+        finufftkwargs = ctx.finufftkwargs
+
+        points_x, points_y, targets = ctx.saved_tensors
+
+        grad_points_x = grad_points_y = grad_targets = None
+
+        if ctx.needs_input_grad[0]:
+            # wrt. points_x
+            pass
+
+        if ctx.needs_input_grad[1]:
+            # wrt. points_y
+            pass
+
+        if ctx.needs_input_grad[2]:
+            # wrt. targets
+
+            np_points_x = points_x.data.numpy()
+            np_points_y = points_y.data.numpy()
+
+            np_grad_output = grad_output.data.numpy()
+
+            grad_targets = torch.from_numpy(
+                finufft.nufft2d1(
+                    np_points_x,
+                    np_points_y,
+                    np_grad_output,
+                    (len(np_points_x), len(np_points_y)),
+                    modeord=_mode_ordering,
+                    isign=(-1 * _i_sign),
+                    **finufftkwargs,
+                )
+            )
+            pass
+
         return (
-            torch.zeros(10),
-            torch.zeros(10),
-            torch.zeros(10),
+            grad_points_x,
+            grad_points_y,
+            grad_targets,
             None,
             None,
             None,
@@ -854,6 +910,12 @@ class finufft3D1(torch.autograd.Function):
                 )
             _mode_ordering = 0
 
+        ctx.save_for_backward(points_x, points_y, points_z, values)
+
+        ctx.isign = _i_sign
+        ctx.mode_ordering = _mode_ordering
+        ctx.finufftkwargs = finufftkwargs
+
         finufft_out = torch.from_numpy(
             finufft.nufft3d1(
                 points_x.data.numpy(),
@@ -886,7 +948,51 @@ class finufft3D1(torch.autograd.Function):
         TODO [type]
             Tuple of derivatives with respect to each input
         """
-        pass
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+        finufftkwargs = ctx.finufftkwargs
+
+        points_x, points_y, points_z, values = ctx.saved_tensors
+
+        grad_points_x = grad_points_y = grad_points_z = grad_values = None
+
+        if ctx.needs_input_grad[0]:
+            grad_points_x = None
+
+        if ctx.needs_input_grad[1]:
+            grad_points_y = None
+
+        if ctx.needs_input_grad[2]:
+            grad_points_y = None
+
+        if ctx.needs_input_grad[3]:
+            np_points_x = points_x.data.numpy()
+            np_points_y = points_y.data.numpy()
+            np_points_z = points_z.data.numpy()
+            np_grad_output = grad_output.data.numpy()
+
+            grad_values = torch.from_numpy(
+                finufft.nufft3d2(
+                    np_points_x,
+                    np_points_y,
+                    np_points_z,
+                    np_grad_output,
+                    isign=(-1 * _i_sign),
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            )
+
+        return (
+            grad_points_x,
+            grad_points_y,
+            grad_points_z,
+            grad_values,
+            None,
+            None,
+            None,
+            None,
+        )
 
 
 class finufft3D2(torch.autograd.Function):

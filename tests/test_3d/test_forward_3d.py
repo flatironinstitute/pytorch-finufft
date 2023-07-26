@@ -34,23 +34,19 @@ def test_3d_t1_forward_CPU(N: int) -> None:
 
         values = torch.randn(*x.shape, dtype=torch.complex128)
 
-        # f = finufft.nufft3d1(x, y, z, values, N, modeord=1)
-
-        finufft_out = (
-            pytorch_finufft.functional.finufft3D1.apply(
-                torch.from_numpy(x),
-                torch.from_numpy(y),
-                torch.from_numpy(z),
-                values,
-                N
-            )
+        finufft_out = pytorch_finufft.functional.finufft3D1.apply(
+            torch.from_numpy(x),
+            torch.from_numpy(y),
+            torch.from_numpy(z),
+            values,
+            N,
         )
-
-        # against_np = np.fft.fftn(values.reshape(g[0].shape))
 
         against_torch = torch.fft.fftn(values.reshape(g[0].shape))
 
-        assert abs((finufft_out - against_torch).sum()) / (N**4) == pytest.approx(0, abs=1e-6)
+        assert abs((finufft_out - against_torch).sum()) / (
+            N**4
+        ) == pytest.approx(0, abs=1e-6)
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -76,4 +72,6 @@ def test_3d_t2_forward_CPU(N: int) -> None:
 
         against_torch = torch.fft.ifftn(values)
 
-        assert (abs((finufft_out - against_torch).sum())) / (N**4) == pytest.approx(0, abs=1e-6)
+        assert (abs((finufft_out - against_torch).sum())) / (
+            N**4
+        ) == pytest.approx(0, abs=1e-6)

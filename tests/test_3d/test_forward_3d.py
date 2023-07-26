@@ -1,9 +1,9 @@
+import finufft
 import numpy as np
 import pytest
 import scipy
 import torch
 from numpy.random import standard_normal
-import finufft
 
 import pytorch_finufft
 
@@ -35,5 +35,3 @@ def test_3d_t1_forward_CPU(N: int) -> None:
     comparison = np.fft.fftn(values.reshape(g[0].shape))
 
     assert abs((f - comparison).sum()) / (N**4) == pytest.approx(0, abs=1e-6)
-
-

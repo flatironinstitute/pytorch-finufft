@@ -32,6 +32,11 @@ def test_2d_t1_forward_CPU(N: int) -> None:
 
     values = torch.randn(*x.shape, dtype=torch.complex128)
 
+    print("N is " + str(N))
+    print("shape of x is " + str(*x.shape))
+    print("shape of y is " + str(*y.shape))
+    print("shape of values is " + str(values.shape))
+
     finufft_out = pytorch_finufft.functional.finufft2D1.apply(
         torch.from_numpy(x),
         torch.from_numpy(y),

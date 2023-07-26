@@ -68,7 +68,6 @@ def test_t1_backward_CPU_points(points: torch.Tensor) -> None:
 
 
 # Case generation for the values tests
-
 cases = [torch.tensor([1.0, 2.5, -1.0, -1.5, 1.5], dtype=torch.complex128)]
 
 for n in Ns:
@@ -98,14 +97,14 @@ def test_t1_backward_CPU_values(values: torch.Tensor) -> None:
 
 
 @pytest.mark.parametrize("N", Ns)
-def test_t2_forward_CPU_targets(N: int) -> None:
+def test_t2_backward_CPU_targets(N: int) -> None:
     """
     Uses gradcheck to test the correctness of the implementation of
     targets gradients for NUFFT type 2 in functional.
     """
     points = 2 * np.pi * torch.arange(0, 1, 1 / 10, dtype=torch.float64)
 
-    targets = torch.randn(N)
+    targets = torch.randn(N, dtype=torch.complex128)
 
     targets.requires_grad = True
     points.requires_grad = False
@@ -116,7 +115,7 @@ def test_t2_forward_CPU_targets(N: int) -> None:
 
 
 @pytest.mark.parametrize("points", cases)
-def test_t2_forward_CPU_points(points: torch.Tensor) -> None:
+def test_t2_backward_CPU_points(points: torch.Tensor) -> None:
     """
     Uses gradcheck to test the correctness of the implementation of
     targets gradients for NUFFT type 2 in functional.

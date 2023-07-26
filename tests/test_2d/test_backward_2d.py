@@ -28,7 +28,7 @@ def apply_finufft2d2(
     points_x: torch.Tensor, points_y: torch.Tensor, targets: torch.Tensor
 ) -> torch.Tensor:
     """Wrapper around finufft2D1.apply(...)"""
-    return pytorch_finufft.functional.finufft2D1.apply(
+    return pytorch_finufft.functional.finufft2D2.apply(
         points_x, points_y, targets
     )
 
@@ -143,7 +143,7 @@ def test_t2_backward_CPU_points_x(N: int) -> None:
     of the derivative in targets for 2d NUFFT type 2
     """
 
-    points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
     points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
     targets = torch.randn(2*N)
 
@@ -164,7 +164,7 @@ def test_t2_backward_CPU_points_y(N: int) -> None:
     """
 
     points_x = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
-    points_y = 2 * np.pi * torch.arange(0, 1, 1/N, dtype=torch.float64)
+    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
     targets = torch.randn(2*N)
 
     points_x.requires_grad = False

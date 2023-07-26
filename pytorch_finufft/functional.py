@@ -815,7 +815,7 @@ class finufft2D3(torch.autograd.Function):
 
 class finufft3D1(torch.autograd.Function):
     """
-    FINUFFT 2D problem type 1
+    FINUFFT 3D problem type 1
     """
 
     @staticmethod
@@ -855,9 +855,10 @@ class finufft3D1(torch.autograd.Function):
             _mode_ordering = 0
 
         finufft_out = torch.from_numpy(
-            finufft.nufft2d1(
+            finufft.nufft3d1(
                 points_x.data.numpy(),
                 points_y.data.numpy(),
+                points_z.data.numpy(),
                 values.data.numpy(),
                 output_shape,
                 modeord=_mode_ordering,
@@ -890,7 +891,7 @@ class finufft3D1(torch.autograd.Function):
 
 class finufft3D2(torch.autograd.Function):
     """
-    FINUFFT 2D problem type 2
+    FINUFFT 3D problem type 2
     """
 
     @staticmethod
@@ -926,11 +927,12 @@ class finufft3D2(torch.autograd.Function):
         ctx.fftshift = fftshift
         ctx.finufftkwargs = finufftkwargs
 
-        ctx.save_for_backward(points_x, points_y, targets)
+        ctx.save_for_backward(points_x, points_y, points_z, targets)
 
-        finufft_out = finufft.nufft2d2(
+        finufft_out = finufft.nufft3d2(
             points_x.data.numpy(),
             points_y.data.numpy(),
+            points_z.data.numpy(),
             targets.data.numpy(),
             modeord=_mode_ordering,
             isign=_i_sign,
@@ -971,7 +973,7 @@ class finufft3D2(torch.autograd.Function):
 
 class finufft3D3(torch.autograd.Function):
     """
-    FINUFFT 2D problem type 3
+    FINUFFT 3D problem type 3
     """
 
     @staticmethod

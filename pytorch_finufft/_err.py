@@ -11,9 +11,9 @@ _COORD_CHAR_TABLE = {1: "x", 2: "y", 3: "z"}
 
 
 def _type1_checks(
-    points_tuple: tuple[torch.Tensor, ...],
+    points_tuple: Tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    output_shape: Union[int, tuple[int, ...]],
+    output_shape: Union[int, Tuple[int, ...]],
 ) -> None:
     """
     Performs all checks for type 1
@@ -30,14 +30,6 @@ def _type1_checks(
     ValueError
         _description_
     """
-
-    # raise TypeError in the case that
-    #   - values is not complex
-    #   - any of the points are not real-valued
-    # raise ValueError in the case that
-    #   - values is not a 1d array
-    #   - each of the points are not 1d
-    #   - the length of the points arrays are not the same
 
     # Ensure that values is complex
     if not torch.is_complex(values):
@@ -104,7 +96,7 @@ def _type1_checks(
 
 
 def _type2_checks(
-    points_tuple: tuple[torch.Tensor, ...], targets: torch.Tensor
+    points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor
 ) -> None:
     """
     _summary_
@@ -178,8 +170,8 @@ def _type2_checks(
 
 
 def _type3_checks(
-    points_tuple: tuple[torch.Tensor, ...],
+    points_tuple: Tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    targets_tuple: tuple[torch.Tensor, ...],
+    targets_tuple: Tuple[torch.Tensor, ...],
 ) -> None:
     raise ValueError("Not yet implemented!")

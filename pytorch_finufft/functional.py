@@ -381,7 +381,9 @@ class finufft1D3(torch.autograd.Function):
         return torch.from_numpy(finufft_out)
 
     @staticmethod
-    def backward(ctx: Any, grad_output: torch.Tensor) -> Tuple[Union[torch.Tensor, Any], ...]:
+    def backward(
+        ctx: Any, grad_output: torch.Tensor
+    ) -> tuple[Union[torch.Tensor, Any], ...]:
         """
         Implements gradients for backward mode automatic differentation
 
@@ -522,7 +524,9 @@ class finufft2D1(torch.autograd.Function):
         return finufft_out
 
     @staticmethod
-    def backward(ctx: Any, grad_output: torch.Tensor) -> Tuple[Union[torch.Tensor, None], ...]:
+    def backward(
+        ctx: Any, grad_output: torch.Tensor
+    ) -> tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method.
 
@@ -816,7 +820,7 @@ class finufft3D1(torch.autograd.Function):
                         j=0
 
             for -N1/2 <= k1 <= (N1-1)/2, -N2/2 <= k2 <= (N2-1)/2, -N3/2 <= k3 <=
-            (N3-1)/2 
+            (N3-1)/2
         ```
 
         Parameters
@@ -832,10 +836,10 @@ class finufft3D1(torch.autograd.Function):
         values : torch.Tensor
             The source strengths c_j.
         output_shape : Union[int, tuple[int, int, int]]
-            The number of Fourier modes to use in the computation (which 
+            The number of Fourier modes to use in the computation (which
             coincides with the length of the resultant array in each
             corresponding direction). If only an integer is provided
-            rather than a tuple, it is taken as the number of modes in 
+            rather than a tuple, it is taken as the number of modes in
             each direction.
         out : Optional[torch.Tensor], optional
             Array to populate with result in-place, by default None

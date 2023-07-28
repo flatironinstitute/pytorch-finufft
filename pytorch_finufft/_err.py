@@ -2,7 +2,7 @@ from typing import Tuple, Union
 
 import torch
 
-_COORD_CHAR_TABLE = {1: "x", 2: "y", 3: "z"}
+_COORD_CHAR_TABLE = {0: "x", 1: "y", 2: "z"}
 
 
 ##############################################################################
@@ -11,9 +11,9 @@ _COORD_CHAR_TABLE = {1: "x", 2: "y", 3: "z"}
 
 
 def _type1_checks(
-    points_tuple: Tuple[torch.Tensor, ...],
+    points_tuple: tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    output_shape: Union[int, Tuple[int, ...]],
+    output_shape: Union[int, tuple[int, ...]],
 ) -> None:
     """
     Performs all checks for type 1
@@ -96,7 +96,7 @@ def _type1_checks(
 
 
 def _type2_checks(
-    points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor
+    points_tuple: tuple[torch.Tensor, ...], targets: torch.Tensor
 ) -> None:
     """
     _summary_
@@ -170,8 +170,9 @@ def _type2_checks(
 
 
 def _type3_checks(
-    points_tuple: Tuple[torch.Tensor, ...],
+    points_tuple: tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    targets_tuple: Tuple[torch.Tensor, ...],
+    targets_tuple: tuple[torch.Tensor, ...],
 ) -> None:
-    raise ValueError("Not yet implemented!")
+    # raise ValueError("Not yet implemented!")
+    pass

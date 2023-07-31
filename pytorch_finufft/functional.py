@@ -27,7 +27,7 @@ class finufft1D1(torch.autograd.Function):
         output_shape: int,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Optional[str],
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -56,10 +56,11 @@ class finufft1D1(torch.autograd.Function):
             coincides with the length of the resultant array).
         out : Optional[torch.Tensor], optional
             Array to populate with result in-place, by default None
-        fftshift : bool, optional
+        fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Optional[str] TODO
-            TODO -- how to document?
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -189,7 +190,7 @@ class finufft1D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs,
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evaluates the Type 2 NUFFT on the inputs.
@@ -215,8 +216,11 @@ class finufft1D2(torch.autograd.Function):
             The target Fourier mode coefficients f_k.
         out : Optional[torch.Tensor], optional
             Array to take the result in-place, by default None
-        fftshift : bool, optional
+        fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -322,7 +326,7 @@ class finufft1D3(torch.autograd.Function):
         values: torch.Tensor,
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
-        **finufftkwargs,
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evaluates the Type 3 NUFFT on the inputs.
@@ -347,8 +351,9 @@ class finufft1D3(torch.autograd.Function):
             The non-uniform target points s_k.
         out : Optional[torch.Tensor]
             Array to populate with result in-place, by default None
-        **finufftkwargs : Optional[str]
-            TODO -- how to document
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -435,7 +440,7 @@ class finufft2D1(torch.autograd.Function):
         output_shape: Union[int, tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Optional[str],
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -469,10 +474,11 @@ class finufft2D1(torch.autograd.Function):
             is taken to be the desired length in each dimension
         out : Optional[torch.Tensor], optional
             Array to populate with result in-place, by default None
-        fftshift : bool, optional
+        fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Optional[str] TODO
-            TODO -- how to document?
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -591,7 +597,7 @@ class finufft2D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Optional[str],
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evaluates the Type 2 NUFFT on the inputs.
@@ -620,10 +626,11 @@ class finufft2D2(torch.autograd.Function):
             The target Fourier mode coefficients f[k1, k2]
         out : Optional[torch.Tensor], optional
             Array to take the result in-place, by default None
-        fftshift : bool, optional
+        fftshift : bool
             If True centers the 0 mode in the resultant torch.Tensor, by default False
-        **finufftkwargs : Optional[str]
-            TODO -- write this and copy paste throughout
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -752,7 +759,7 @@ class finufft2D3(torch.autograd.Function):
 
     @staticmethod
     def forward(
-        ctx,
+        ctx: Any,
         points_x: torch.Tensor,
         points_y: torch.Tensor,
         values: torch.Tensor,
@@ -760,30 +767,60 @@ class finufft2D3(torch.autograd.Function):
         targets_t: torch.Tensor,
     ) -> torch.Tensor:
         """
-        TODO
+        Evaluates the Type 3 NUFFT on the inputs
+
+        Parameters
+        ----------
+        ctx : Any
+            _description_
+        points_x : torch.Tensor
+            _description_
+        points_y : torch.Tensor
+            _description_
+        values : torch.Tensor
+            _description_
+        targets_s : torch.Tensor
+            _description_
+        targets_t : torch.Tensor
+            _description_
+
+        Returns
+        -------
+        torch.Tensor
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
         """
+
+        if True:
+            raise ValueError("2D3 is not implemented yet")
 
         return torch.ones(10)
 
     @staticmethod
-    def backward(ctx, grad_output: torch.Tensor):
+    def backward(
+        ctx: Any, grad_output: torch.Tensor
+    ) -> tuple[Union[torch.Tensor, None], ...]:
         """
         Implements gradients for backward mode automatic differentiation
 
         Parameters
         ----------
-        ctx : TODO
+        ctx : Any
             TODO PyTorch context object
         grad_output : torch.Tensor
             TODO VJP output
 
         Returns
         -------
-        TODO [type]
+        tuple[Union[torch.Tensor, None], ...]
             Tuple of derivatives with respect to each input
         """
 
-        pass
+        return None, None, None, None, None
 
 
 ###############################################################################
@@ -806,7 +843,7 @@ class finufft3D1(torch.autograd.Function):
         output_shape: Union[int, tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Optional[str],
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -843,10 +880,11 @@ class finufft3D1(torch.autograd.Function):
             each direction.
         out : Optional[torch.Tensor], optional
             Array to populate with result in-place, by default None
-        fftshift : bool, optional
+        fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Optional[str] TODO
-            TODO -- how to document?
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -979,7 +1017,7 @@ class finufft3D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs,
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evalutes the Type 2 NUFFT on the inputs
@@ -1009,10 +1047,11 @@ class finufft3D2(torch.autograd.Function):
             The target Fourier mode coefficients f_{k1, k2, k3}
         out : Optional[torch.Tensor], optional
             Array to use for in-place result, by default None
-        fftshift : bool, optional
+        fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : TODO
-            TODO -- how to document?
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------
@@ -1064,15 +1103,7 @@ class finufft3D2(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[
-        Union[torch.Tensor, None],
-        Union[torch.Tensor, None],
-        Union[torch.Tensor, None],
-        Union[torch.Tensor, None],
-        None,
-        None,
-        None,
-    ]:
+    ) -> tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method
 
@@ -1142,30 +1173,94 @@ class finufft3D3(torch.autograd.Function):
 
     @staticmethod
     def forward(
-        ctx,
+        ctx: Any,
+        points_x: torch.Tensor,
+        points_y: torch.Tensor,
+        points_z: torch.Tensor,
+        values: torch.Tensor,
+        targets_s: torch.Tensor,
+        targets_t: torch.Tensor,
+        targets_u: torch.Tensor,
+        out: Optional[torch.Tensor] = None,
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
-        TODO
+        TODO Description here!
+
+        Parameters
+        ----------
+        ctx : Any
+            PyTorch context object
+        points_x : torch.Tensor
+            The nonuniform source points x_j
+        points_y : torch.Tensor
+            The nonuniform source points y_j
+        points_z : torch.Tensor
+            The nonuniform source points z_j
+        values : torch.Tensor
+            The source strengths c_j
+        targets_s : torch.Tensor
+            The target Fourier mode coefficients s_k
+        targets_t : torch.Tensor
+            The target Fourier mode coefficients t_k
+        targets_u : torch.Tensor
+            The target Fourier mode coefficients u_k
+        out : Optional[torch.Tensor], optional
+            Array to take the result in-place, by default None
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
+
+        Returns
+        -------
+        torch.Tensor
+            The resultant array f[k]
+
+        Raises
+        ------
+        ValueError
+            _description_
         """
+
+        if True:
+            raise ValueError("3D3 is not implemented yet")
 
         return torch.ones(10)
 
     @staticmethod
-    def backward(ctx: Any, grad_output: torch.Tensor):
+    def backward(
+        ctx: Any, grad_output: torch.Tensor
+    ) -> tuple[Union[torch.Tensor, None], ...]:
         """
         Implements gradients for backward mode automatic differentiation
 
         Parameters
         ----------
-        ctx : TODO
+        ctx : Any
             TODO PyTorch context object
         grad_output : torch.Tensor
             TODO VJP output
 
         Returns
         -------
-        TODO [type]
+        tuple[Union[torch.Tensor, None], ...]
             Tuple of derivatives with respect to each input
         """
 
-        pass
+        grad_points_x = grad_points_y = grad_points_z = None
+
+        grad_values = None
+
+        grad_targets_s = grad_targets_t = grad_targets_u = None
+
+        return (
+            grad_points_x,
+            grad_points_y,
+            grad_points_z,
+            grad_values,
+            grad_targets_s,
+            grad_targets_t,
+            grad_targets_u,
+            None,
+            None,
+        )

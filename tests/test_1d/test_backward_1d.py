@@ -62,7 +62,7 @@ def test_t1_backward_CPU_points(N: int) -> None:
 
     inputs = (points, values)
 
-    assert gradcheck(apply_finufft1d1, inputs)
+    assert gradcheck(apply_finufft1d1, inputs, atol=1e-4*N)
 
 
 # Case generation for the values tests

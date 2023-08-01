@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 
@@ -20,8 +20,8 @@ class Finufft1D1(torch.nn.Module):
         values: torch.Tensor,
         output_shape: int,
         out: Optional[torch.Tensor] = None,
-        fftshift: bool = False,
-        **finufftkwargs: Optional[str],
+        fftshift: Optional[bool] = False,
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evalutes the Type 1 NUFFT on the inputs.
@@ -50,8 +50,10 @@ class Finufft1D1(torch.nn.Module):
             Array to populate with result in-place, by default None
         fftshift : bool, optional
             If True, centers the 0 mode in the resultant torch.Tensor; by default False
-        **finufftkwargs : Optional[str] TODO
-            TODO  -- how to document?
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
+
 
         Returns
         -------
@@ -80,8 +82,8 @@ class Finufft1D2(torch.nn.Module):
         values: torch.Tensor,
         output_shape: int,
         out: Optional[torch.Tensor] = None,
-        fftshift: bool = False,
-        **finufftkwargs: Optional[str],
+        fftshift: Optional[bool] = False,
+        **finufftkwargs: Union[int, float],
     ) -> torch.Tensor:
         """
         Evalutes the Type 1 NUFFT on the inputs.
@@ -109,6 +111,9 @@ class Finufft1D2(torch.nn.Module):
             _description_, by default None
         fftshift : bool, optional
             _description_, by default False
+        **finufftkwargs : Union[int, float]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html
 
         Returns
         -------

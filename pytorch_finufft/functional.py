@@ -2,16 +2,16 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import finufft
 import torch
 
 import pytorch_finufft._err as err
 
-########################################################################################
+###############################################################################
 # 1d Functions
-########################################################################################
+###############################################################################
 
 
 class finufft1D1(torch.autograd.Function):
@@ -119,7 +119,7 @@ class finufft1D1(torch.autograd.Function):
         ctx : Any
             PyTorch context object.
         grad_output : torch.Tensor
-            Backpass gradient output.
+            Backpass gradient wrt. output of NUFFT operation
 
         Returns
         -------
@@ -136,29 +136,32 @@ class finufft1D1(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             # w.r.t. the points x_j
 
-            # k_ramp = torch.arange(0, grad_output.shape[-1], dtype=points.dtype)
-            # if _mode_ordering == 0:
-            #     # NOTE: kramp should be fft-shifted in this case
-            #     k_ramp = torch.fft.fftshift(k_ramp)
+            k_ramp = torch.arange(
+                0, grad_output.shape[-1], dtype=points.dtype
+            ) - (grad_output.shape[-1] // 2)
+            if _mode_ordering != 0:
+                k_ramp = torch.fft.ifftshift(k_ramp)
 
-            # ramped_grad_output = k_ramp * grad_output
+            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            ramped_grad_output = k_ramp * grad_output * 1j
 
-            # np_points = (points.data).numpy()
-            # np_grad_output = (ramped_grad_output.data).numpy()
+            np_points = (points.data).numpy()
+            np_grad_output = (ramped_grad_output.data).numpy()
 
-            # grad_points = torch.from_numpy(
-            #     finufft.nufft1d2(
-            #         np_points,
-            #         np_grad_output,
-            #         isign=(-1 * _i_sign),
-            #         modeord=_mode_ordering,
-            #         **finufftkwargs,
-            #     )
-            # ).to(values.dtype)
+            grad_points = torch.from_numpy(
+                finufft.nufft1d2(
+                    np_points,
+                    np_grad_output,
+                    isign=(-1 * _i_sign),
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            ).to(values.dtype)
 
-            # grad_points *= values
+            grad_points = grad_points.conj()
+            grad_points *= values
 
-            pass
+            grad_points = grad_points.real
 
         if ctx.needs_input_grad[1]:
             # w.r.t. the values c_j

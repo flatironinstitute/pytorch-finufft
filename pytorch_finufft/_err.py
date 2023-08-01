@@ -158,16 +158,6 @@ def _type2_checks(
                 "targets."
             )
 
-    # Ensure that each points tensor is of the same length of the
-    #  corresponding dimension of values
-    s = targets.shape
-    for i in range(dimension):
-        if s[i] != len(points_tuple[i]):
-            raise ValueError(
-                f"points{coord_char} and the {i}'th dimension of targets must "
-                "be the same length"
-            )
-
     _device_assertions(targets, points_tuple)
 
     return

@@ -158,7 +158,6 @@ def _type2_checks(
                 "targets."
             )
 
-
     _device_assertions(targets, points_tuple)
 
     return

@@ -27,7 +27,7 @@ class finufft1D1(torch.autograd.Function):
         output_shape: int,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str,Union[int, float]] = {},
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -136,7 +136,9 @@ class finufft1D1(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             # w.r.t. the points x_j
 
-            k_ramp = torch.arange(0, grad_output.shape[-1], dtype=points.dtype) - (grad_output.shape[-1] // 2)
+            k_ramp = torch.arange(
+                0, grad_output.shape[-1], dtype=points.dtype
+            ) - (grad_output.shape[-1] // 2)
             if _mode_ordering != 0:
                 k_ramp = torch.fft.ifftshift(k_ramp)
 
@@ -191,7 +193,7 @@ class finufft1D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Union[int, float],
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 2 NUFFT on the inputs.
@@ -296,7 +298,35 @@ class finufft1D2(torch.autograd.Function):
         grad_points = grad_targets = None
 
         if ctx.needs_input_grad[0]:
-            grad_points = None
+            # w.r.t. the points x_j
+
+            k_ramp = torch.arange(0, targets.shape[-1], dtype=points.dtype) - (
+                targets.shape[-1] // 2
+            )
+            if _mode_ordering != 0:
+                k_ramp = torch.fft.ifftshift(k_ramp)
+
+            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            ramped_targets = k_ramp * targets * 1j * _i_sign
+
+            np_points = (points.data).numpy()
+            np_grad_output = (ramped_targets.data).numpy()
+
+            grad_points = torch.from_numpy(
+                finufft.nufft1d2(
+                    np_points,
+                    np_grad_output,
+                    isign=_i_sign,
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            ).to(targets.dtype)
+
+            grad_points = grad_points.conj()
+            grad_points *= grad_output
+
+            grad_points = grad_points.real
+
         if ctx.needs_input_grad[1]:
             np_points = points.data.numpy()
             np_grad_output = grad_output.data.numpy()
@@ -305,7 +335,7 @@ class finufft1D2(torch.autograd.Function):
                 finufft.nufft1d1(
                     np_points,
                     np_grad_output,
-                    len(np_points),
+                    len(targets),
                     modeord=_mode_ordering,
                     isign=(-1 * _i_sign),
                     **finufftkwargs,
@@ -736,7 +766,7 @@ class finufft2D2(torch.autograd.Function):
                     np_points_x,
                     np_points_y,
                     np_grad_output,
-                    len(np_grad_output),
+                    len(targets),
                     modeord=_mode_ordering,
                     isign=(-1 * _i_sign),
                     **finufftkwargs,

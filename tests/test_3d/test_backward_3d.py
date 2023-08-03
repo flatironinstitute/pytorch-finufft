@@ -13,28 +13,49 @@ torch.set_default_dtype(torch.float64)
 ######################################################################
 
 
-def apply_finufft3d1(
-    points_x: torch.Tensor,
-    points_y: torch.Tensor,
-    points_z: torch.Tensor,
-    values: torch.Tensor,
-) -> torch.Tensor:
+def apply_finufft3d1(modifier: int, fftshift: bool, isign: int):
     """Wrapper around finufft2D1.apply(...)"""
-    return pytorch_finufft.functional.finufft3D1.apply(
-        points_x, points_y, points_z, values, len(values)
-    )
+
+    def f(
+        points_x: torch.Tensor,
+        points_y: torch.Tensor,
+        points_z: torch.Tensor,
+        values: torch.Tensor,
+    ) -> torch.Tensor:
+        return pytorch_finufft.functional.finufft3D1.apply(
+            points_x,
+            points_y,
+            points_z,
+            values,
+            len(values) + modifier,
+            None,
+            fftshift,
+            dict(isign=isign),
+        )
+
+    return f
 
 
-def apply_finufft3d2(
-    points_x: torch.Tensor,
-    points_y: torch.Tensor,
-    points_z: torch.Tensor,
-    targets: torch.Tensor,
-) -> torch.Tensor:
+def apply_finufft3d2(fftshift: bool, isign: int):
     """Wrapper around finufft2D1.apply(...)"""
-    return pytorch_finufft.functional.finufft3D2.apply(
-        points_x, points_y, points_z, targets
-    )
+
+    def f(
+        points_x: torch.Tensor,
+        points_y: torch.Tensor,
+        points_z: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> torch.Tensor:
+        return pytorch_finufft.functional.finufft3D2.apply(
+            points_x,
+            points_y,
+            points_z,
+            targets,
+            None,
+            fftshift,
+            dict(isign=isign),
+        )
+
+    return f
 
 
 ######################################################################
@@ -49,97 +70,119 @@ Ns = [
     10,
 ]
 
+length_modifiers = [-1, 0, 1, 4]
+
 
 ######################################################################
 # TYPE 1 TESTS
 ######################################################################
 
 
-# @pytest.mark.parametrize("N", Ns)
-# def test_t1_backward_CPU_values(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implementation
-#     of the derivative in values for 2d NUFFT type 1
-#     """
-#     points_x = 2 * np.pi * torch.arange(0, 1, 1 / N)
-#     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N)
-#     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N)
-#     values = torch.rand(N, dtype=torch.complex128)
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_backward_CPU_values(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implementation
+    of the derivative in values for 2d NUFFT type 1
+    """
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N)
+    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N)
+    values = torch.rand(N, dtype=torch.complex128)
 
-#     points_x.requires_grad = False
-#     points_y.requires_grad = False
-#     points_z.requires_grad = False
-#     values.requires_grad = True
+    points_x.requires_grad = False
+    points_y.requires_grad = False
+    points_z.requires_grad = False
+    values.requires_grad = True
 
-#     inputs = (points_x, points_y, points_z, values)
+    inputs = (points_x, points_y, points_z, values)
 
-#     assert gradcheck(apply_finufft3d1, inputs)
-
-
-# @pytest.mark.parametrize("N", Ns)
-# def test_t1_backward_CPU_points_x(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implementation
-#     of the derivative in points_x for 2d NUFFT type 1
-#     """
-
-#     points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-#     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     values = torch.randn(N, dtype=torch.complex128)
-
-#     points_x.requires_grad = True
-#     points_y.requires_grad = False
-#     points_z.requires_grad = False
-#     values.requires_grad = False
-
-#     inputs = (points_x, points_y, points_z, values)
-
-#     assert gradcheck(apply_finufft3d1, inputs)
+    assert gradcheck(apply_finufft3d1(modifier, fftshift, isign), inputs)
 
 
-# @pytest.mark.parametrize("N", Ns)
-# def test_t1_backward_CPU_points_y(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implementation
-#     of the derivative in points_y for 2d NUFFT type 1
-#     """
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_backward_CPU_points_x(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implementation
+    of the derivative in points_x for 2d NUFFT type 1
+    """
 
-#     points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-#     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     values = torch.randn(N, dtype=torch.complex128)
+    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    values = torch.randn(N, dtype=torch.complex128)
 
-#     points_x.requires_grad = False
-#     points_y.requires_grad = True
-#     points_z.requires_grad = False
-#     values.requires_grad = False
+    points_x.requires_grad = True
+    points_y.requires_grad = False
+    points_z.requires_grad = False
+    values.requires_grad = False
 
-#     inputs = (points_x, points_y, points_z, values)
+    inputs = (points_x, points_y, points_z, values)
 
-#     assert gradcheck(apply_finufft3d1, inputs)
+    assert gradcheck(apply_finufft3d1(modifier, fftshift, isign), inputs)
 
 
-# @pytest.mark.parametrize("N", Ns)
-# def test_t1_backward_CPU_points_z(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implementation
-#     of the derivative in points_y for 2d NUFFT type 1
-#     """
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_backward_CPU_points_y(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implementation
+    of the derivative in points_y for 2d NUFFT type 1
+    """
 
-#     points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-#     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     values = torch.randn(N)
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    values = torch.randn(N, dtype=torch.complex128)
 
-#     points_x.requires_grad = False
-#     points_y.requires_grad = False
-#     points_z.requires_grad = True
-#     values.requires_grad = False
+    points_x.requires_grad = False
+    points_y.requires_grad = True
+    points_z.requires_grad = False
+    values.requires_grad = False
 
-#     inputs = (points_x, points_y, points_z, values)
+    inputs = (points_x, points_y, points_z, values)
 
-#     assert gradcheck(apply_finufft3d1, inputs)
+    assert gradcheck(apply_finufft3d1(modifier, fftshift, isign), inputs)
+
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_backward_CPU_points_z(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implementation
+    of the derivative in points_y for 2d NUFFT type 1
+    """
+
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    values = torch.randn(N, dtype=torch.complex128)
+
+    points_x.requires_grad = False
+    points_y.requires_grad = False
+    points_z.requires_grad = True
+    values.requires_grad = False
+
+    inputs = (points_x, points_y, points_z, values)
+
+    assert gradcheck(apply_finufft3d1(modifier, fftshift, isign), inputs)
 
 
 ######################################################################
@@ -148,7 +191,12 @@ Ns = [
 
 
 @pytest.mark.parametrize("N", Ns)
-def test_t2_backward_CPU_targets(N: int) -> None:
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_targets(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
     """
     Uses gradcheck to test the correctness of the implemntation
     of the derivative in targets for 2d NUFFT type 2
@@ -166,70 +214,90 @@ def test_t2_backward_CPU_targets(N: int) -> None:
 
     inputs = (points_x, points_y, points_z, targets)
 
-    assert gradcheck(apply_finufft3d2, inputs)
+    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
 
 
-# @pytest.mark.parametrize("N", Ns)
-# def test_t2_backward_CPU_points_x(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implemntation
-#     of the derivative in targets for 2d NUFFT type 2
-#     """
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_points_x(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implemntation
+    of the derivative in targets for 2d NUFFT type 2
 
-#     points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-#     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     targets = torch.randn((N, N, N), dtype=torch.complex128)
+    N -- size of arrays
+    modifier -- perturb the size of the arrays with size modifier
+    fftshift -- test different fftshift values (T/F)
+    isign -- test different isign values (+/- 1)
+    """
 
-#     points_x.requires_grad = True
-#     points_y.requires_grad = False
-#     points_z.requires_grad = False
-#     targets.requires_grad = False
+    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    targets = torch.randn((N, N, N), dtype=torch.complex128)
 
-#     inputs = (points_x, points_y, points_z, targets)
+    points_x.requires_grad = True
+    points_y.requires_grad = False
+    points_z.requires_grad = False
+    targets.requires_grad = False
 
-#     assert gradcheck(apply_finufft3d2, inputs)
+    inputs = (points_x, points_y, points_z, targets)
 
-
-# @pytest.mark.parametrize("N", Ns)
-# def test_t2_backward_CPU_points_y(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implemntation
-#     of the derivative in targets for 2d NUFFT type 2
-#     """
-
-#     points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-#     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     targets = torch.randn((N, N, N), dtype=torch.complex128)
-
-#     points_x.requires_grad = False
-#     points_y.requires_grad = True
-#     points_z.requires_grad = False
-#     targets.requires_grad = False
-
-#     inputs = (points_x, points_y, points_z, targets)
-
-#     assert gradcheck(apply_finufft3d2, inputs)
+    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
 
 
-# @pytest.mark.parametrize("N", Ns)
-# def test_t2_backward_CPU_points_z(N: int) -> None:
-#     """
-#     Uses gradcheck to test the correctness of the implemntation
-#     of the derivative in targets for 2d NUFFT type 2
-#     """
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_points_y(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implemntation
+    of the derivative in targets for 2d NUFFT type 2
+    """
 
-#     points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-#     points_z = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-#     targets = torch.randn((N, N, N), dtype=torch.complex128)
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    targets = torch.randn((N, N, N), dtype=torch.complex128)
 
-#     points_x.requires_grad = False
-#     points_y.requires_grad = False
-#     points_z.requires_grad = True
-#     targets.requires_grad = False
+    points_x.requires_grad = False
+    points_y.requires_grad = True
+    points_z.requires_grad = False
+    targets.requires_grad = False
 
-#     inputs = (points_x, points_y, points_z, targets)
+    inputs = (points_x, points_y, points_z, targets)
 
-#     assert gradcheck(apply_finufft3d2, inputs)
+    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
+
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_points_z(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    """
+    Uses gradcheck to test the correctness of the implemntation
+    of the derivative in targets for 2d NUFFT type 2
+    """
+
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
+    points_z = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    targets = torch.randn((N, N, N), dtype=torch.complex128)
+
+    points_x.requires_grad = False
+    points_y.requires_grad = False
+    points_z.requires_grad = True
+    targets.requires_grad = False
+
+    inputs = (points_x, points_y, points_z, targets)
+
+    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)

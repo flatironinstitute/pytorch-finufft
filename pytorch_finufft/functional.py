@@ -58,9 +58,10 @@ class finufft1D1(torch.autograd.Function):
             Array to populate with result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------
@@ -221,9 +222,10 @@ class finufft1D2(torch.autograd.Function):
             Array to take the result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------
@@ -357,7 +359,7 @@ class finufft1D3(torch.autograd.Function):
         values: torch.Tensor,
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
-        **finufftkwargs: Union[int, float],
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 3 NUFFT on the inputs.
@@ -382,9 +384,10 @@ class finufft1D3(torch.autograd.Function):
             The non-uniform target points s_k.
         out : Optional[torch.Tensor]
             Array to populate with result in-place, by default None
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------
@@ -471,7 +474,7 @@ class finufft2D1(torch.autograd.Function):
         output_shape: Union[int, tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Union[int, float],
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -507,9 +510,10 @@ class finufft2D1(torch.autograd.Function):
             Array to populate with result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------
@@ -628,7 +632,7 @@ class finufft2D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Union[int, float],
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 2 NUFFT on the inputs.
@@ -659,9 +663,10 @@ class finufft2D2(torch.autograd.Function):
             Array to take the result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant torch.Tensor, by default False
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------
@@ -874,7 +879,7 @@ class finufft3D1(torch.autograd.Function):
         output_shape: Union[int, tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Union[int, float],
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -913,9 +918,10 @@ class finufft3D1(torch.autograd.Function):
             Array to populate with result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------
@@ -1048,7 +1054,7 @@ class finufft3D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        **finufftkwargs: Union[int, float],
+        finufftkwargs: dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evalutes the Type 2 NUFFT on the inputs
@@ -1080,9 +1086,10 @@ class finufft3D2(torch.autograd.Function):
             Array to use for in-place result, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        **finufftkwargs : Union[int, float]
+        finufftkwargs : dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html
+            https://finufft.readthedocs.io/en/latest/python.html. By default
+            an empty dictionary
 
         Returns
         -------

@@ -62,7 +62,7 @@ Ns = [
     101,
 ]
 
-length_modifiers = [0, 1, 10]
+length_modifiers = [-1, 0, 1, 4]
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -123,6 +123,11 @@ def test_t1_backward_CPU_values(
 ######################################################################
 
 
+"""
+NOTE: A few of the below do NOT pass due to strict tolerance
+"""
+
+
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("modifier", length_modifiers)
 @pytest.mark.parametrize("fftshift", [True, False])
@@ -158,13 +163,10 @@ def test_t2_backward_CPU_points(
     """
     points = 3 * np.pi * ((2 * torch.rand(N, dtype=torch.float64)) - 1)
     targets = torch.randn(N + modifier, dtype=torch.complex128)
-    # TODO test points.size != targets.size
 
     targets.requires_grad = False
     points.requires_grad = True
 
     inputs = (points, targets)
 
-    assert gradcheck(
-        apply_finufft1d2(fftshift, isign), inputs
-    )
+    assert gradcheck(apply_finufft1d2(fftshift, isign), inputs)

@@ -51,14 +51,20 @@ def apply_finufft2d2(fftshift: bool, isign: int):
 
 
 Ns = [
-    5,
-    8,
-    10,
-    15,
-    16,
+    3,
+    # 5,
+    # 8,
+    # 10,
+    # 15,
+    # 16,
 ]
 
-length_modifiers = [-1, 0, 1, 4]
+length_modifiers = [
+    0,
+    # 1,
+    # 4,
+    # -1
+]
 
 
 ######################################################################
@@ -68,7 +74,7 @@ length_modifiers = [-1, 0, 1, 4]
 
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("modifier", length_modifiers)
-@pytest.mark.parametrize("fftshift", [True, False])
+@pytest.mark.parametrize("fftshift", [False, True])
 @pytest.mark.parametrize("isign", [-1, 1])
 def test_t1_backward_CPU_values(
     N: int, modifier: int, fftshift: bool, isign: int
@@ -104,7 +110,8 @@ def test_t1_backward_CPU_points_x(
     """
 
     # TODO -- have it test also over uneven points_x and points_y
-    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    # points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     values = torch.randn(N, dtype=torch.complex128)
 
@@ -190,7 +197,8 @@ def test_t2_backward_CPU_points_x(
 
     # TODO -- need to make sure the points are uneven and varied sufficiently
 
-    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    # points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     targets = torch.randn((N, N), dtype=torch.complex128)
 

@@ -312,12 +312,12 @@ class finufft1D2(torch.autograd.Function):
             ramped_targets = k_ramp * targets * 1j * _i_sign
 
             np_points = (points.data).numpy()
-            np_grad_output = (ramped_targets.data).numpy()
+            np_ramped_targets = (ramped_targets.data).numpy()
 
             grad_points = torch.from_numpy(
                 finufft.nufft1d2(
                     np_points,
-                    np_grad_output,
+                    np_ramped_targets,
                     isign=_i_sign,
                     modeord=_mode_ordering,
                     **finufftkwargs,
@@ -593,7 +593,34 @@ class finufft2D1(torch.autograd.Function):
         grad_points_x = grad_points_y = grad_values = None
         if ctx.needs_input_grad[0]:
             # wrt. points_x
-            grad_points_x = None
+
+            k_ramp = torch.arange(
+                0, grad_output.shape[-1], dtype=points_x.dtype
+            ) - (grad_output.shape[-1] // 2)
+            if _mode_ordering != 0:
+                k_ramp = torch.fft.ifftshift(k_ramp)
+
+            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            ramped_grad_output = k_ramp * grad_output * 1j * _i_sign
+
+            np_points_x = points_x.data.numpy()
+            np_points_y = points_y.data.numpy()
+            np_grad_output = ramped_grad_output.data.numpy()
+
+            grad_points = torch.from_numpy(
+                finufft.nufft2d2(
+                    np_points_x,
+                    np_points_y,
+                    np_grad_output,
+                    isign=_i_sign,
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            ).to(values.dtype)
+
+            grad_points_x = (grad_points.conj() * values).real
+
+            assert 1 == 2
 
         if ctx.needs_input_grad[1]:
             # wrt. points_y
@@ -752,7 +779,34 @@ class finufft2D2(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # wrt. points_x
-            pass
+            k_ramp = torch.arange(
+                0, targets.shape[-1], dtype=points_x.dtype
+            ) - (targets.shape[-1] // 2)
+            if _mode_ordering != 0 or fftshift:
+                k_ramp = torch.fft.ifftshift(k_ramp)
+
+            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            ramped_targets = k_ramp * targets * 1j * _i_sign
+
+            np_points_x = points_x.data.numpy()
+            np_points_y = points_y.data.numpy()
+            np_ramped_targets = ramped_targets.data.numpy()
+
+            grad_points_x = torch.from_numpy(
+                finufft.nufft2d2(
+                    np_points_x,
+                    np_points_y,
+                    np_ramped_targets,
+                    isign=_i_sign,
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            ).to(targets.dtype)
+
+            grad_points_x = grad_points_x.conj()
+            grad_points_x *= grad_output
+
+            grad_points_x = grad_points_x.real
 
         if ctx.needs_input_grad[1]:
             # wrt. points_y

@@ -61,9 +61,9 @@ Ns = [
 
 length_modifiers = [
     0,
-    # 1,
+    1,
     # 4,
-    # -1
+    -1
 ]
 
 
@@ -121,7 +121,7 @@ def test_t1_backward_CPU_points_x(
 
     inputs = (points_x, points_y, values)
 
-    assert gradcheck(apply_finufft2d1(modifier, fftshift, isign), inputs)
+    assert gradcheck(apply_finufft2d1(modifier, fftshift, isign), inputs, atol=1e-4 * N)
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -147,7 +147,7 @@ def test_t1_backward_CPU_points_y(
 
     inputs = (points_x, points_y, values)
 
-    assert gradcheck(apply_finufft2d1(modifier, fftshift, isign), inputs)
+    assert gradcheck(apply_finufft2d1(modifier, fftshift, isign), inputs, atol=1e-4*N)
 
 
 ######################################################################

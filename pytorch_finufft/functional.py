@@ -584,24 +584,29 @@ class finufft2D1(torch.autograd.Function):
             Tuple of derivatives with respect to each input
         """
 
-        _i_sign = ctx.isign
+        _i_sign = -1* ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
 
         points_x, points_y, values = ctx.saved_tensors
 
+        x_ramp = torch.arange(
+                0, grad_output.shape[0], dtype=points_x.dtype
+            ) - (grad_output.shape[0] // 2)
+        y_ramp = torch.arange(
+                0, grad_output.shape[1], dtype=points_y.dtype
+            ) - (grad_output.shape[1] // 2)
+        XX, YY = torch.meshgrid(x_ramp, y_ramp)
+
         grad_points_x = grad_points_y = grad_values = None
         if ctx.needs_input_grad[0]:
             # wrt. points_x
 
-            k_ramp = torch.arange(
-                0, grad_output.shape[-1], dtype=points_x.dtype
-            ) - (grad_output.shape[-1] // 2)
             if _mode_ordering != 0:
-                k_ramp = torch.fft.ifftshift(k_ramp)
+                XX = torch.fft.ifftshift(XX)
 
             # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
-            ramped_grad_output = k_ramp * grad_output * 1j * _i_sign
+            ramped_grad_output = (XX * grad_output * 1j * _i_sign)
 
             np_points_x = points_x.data.numpy()
             np_points_y = points_y.data.numpy()
@@ -620,11 +625,32 @@ class finufft2D1(torch.autograd.Function):
 
             grad_points_x = (grad_points.conj() * values).real
 
-            assert 1 == 2
 
         if ctx.needs_input_grad[1]:
             # wrt. points_y
-            grad_points_y = None
+
+            if _mode_ordering != 0:
+                YY = torch.fft.ifftshift(YY)
+
+            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            ramped_grad_output = (YY * grad_output * 1j * _i_sign)
+
+            np_points_x = points_x.data.numpy()
+            np_points_y = points_y.data.numpy()
+            np_grad_output = ramped_grad_output.data.numpy()
+
+            grad_points = torch.from_numpy(
+                finufft.nufft2d2(
+                    np_points_x,
+                    np_points_y,
+                    np_grad_output,
+                    isign=_i_sign,
+                    modeord=_mode_ordering,
+                    **finufftkwargs,
+                )
+            ).to(values.dtype)
+
+            grad_points_y = (grad_points.conj() * values).real
 
         if ctx.needs_input_grad[2]:
             # wrt. values
@@ -637,7 +663,7 @@ class finufft2D1(torch.autograd.Function):
                     np_points_x,
                     np_points_y,
                     np_grad_output,
-                    isign=(-1 * _i_sign),
+                    isign= _i_sign,
                     modeord=_mode_ordering,
                     **finufftkwargs,
                 )

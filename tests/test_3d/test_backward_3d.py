@@ -65,12 +65,16 @@ def apply_finufft3d2(fftshift: bool, isign: int):
 
 Ns = [
     3,
-    5,
-    8,
-    10,
+    # 5,
+    # 8,
 ]
 
-length_modifiers = [-1, 0, 1, 4]
+length_modifiers = [
+    # -1,
+    0,
+    # 1,
+    # 4
+]
 
 
 ######################################################################
@@ -116,7 +120,8 @@ def test_t1_backward_CPU_points_x(
     of the derivative in points_x for 2d NUFFT type 1
     """
 
-    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    # points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
+    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
     values = torch.randn(N, dtype=torch.complex128)

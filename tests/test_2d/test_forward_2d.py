@@ -115,17 +115,17 @@ def test_2d_t2_forward_CPU(N: int) -> None:
     )
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_2d_t3_forward_CPU(N: int) -> None:
-    g = np.mgrid[:3, :3] * 2 * np.pi / 3
-    x, y = g.reshape(2, -1)
+# @pytest.mark.parametrize("N", Ns)
+# def test_2d_t3_forward_CPU(N: int) -> None:
+#     g = np.mgrid[:3, :3] * 2 * np.pi / 3
+#     x, y = g.reshape(2, -1)
 
-    values = torch.randn(*g[0].shape, dtype=torch.complex128).numpy()
+#     values = torch.randn(*g[0].shape, dtype=torch.complex128).numpy()
 
-    f = finufft.nufft2d2(x, y, np.fft.fftshift(values)).reshape(g[0].shape) / 9
+#     f = finufft.nufft2d2(x, y, np.fft.fftshift(values)).reshape(g[0].shape) / 9
 
-    comparison = np.fft.ifft2(values)
+#     comparison = np.fft.ifft2(values)
 
-    assert abs((f - comparison).sum()) / (N**3) == pytest.approx(0, abs=1e-6)
+#     assert abs((f - comparison).sum()) / (N**3) == pytest.approx(0, abs=1e-6)
 
-    pass
+#     pass

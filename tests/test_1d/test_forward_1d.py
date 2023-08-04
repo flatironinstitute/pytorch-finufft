@@ -103,32 +103,32 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
     )
 
 
-@pytest.mark.parametrize("values", cases)
-def test_1d_t3_forward_CPU(values: torch.Tensor) -> None:
-    """
-    Test type 3 API against existing implementations
-    """
-    N = len(values)
+# @pytest.mark.parametrize("values", cases)
+# def test_1d_t3_forward_CPU(values: torch.Tensor) -> None:
+#     """
+#     Test type 3 API against existing implementations
+#     """
+#     N = len(values)
 
-    data_type = (
-        torch.float64 if values.dtype is torch.complex128 else torch.float32
-    )
+#     data_type = (
+#         torch.float64 if values.dtype is torch.complex128 else torch.float32
+#     )
 
-    points = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type)
-    targets = torch.arange(0, N, dtype=data_type)
+#     points = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type)
+#     targets = torch.arange(0, N, dtype=data_type)
 
-    finufft_out = pytorch_finufft.functional.finufft1D3.apply(
-        points, values, targets
-    )
+#     finufft_out = pytorch_finufft.functional.finufft1D3.apply(
+#         points, values, targets
+#     )
 
-    against_torch = torch.fft.fft(values)
-    against_scipy = scipy.fft.fft(values.numpy())
+#     against_torch = torch.fft.fft(values)
+#     against_scipy = scipy.fft.fft(values.numpy())
 
-    assert against_torch.dtype == finufft_out.dtype
-    assert (
-        torch.linalg.norm(finufft_out - against_torch) / N**2
-    ) == pytest.approx(0, abs=1e-05)
-    assert (
-        torch.linalg.norm(finufft_out - torch.from_numpy(against_scipy))
-        / N**2
-    ) == pytest.approx(0, abs=1e-05)
+#     assert against_torch.dtype == finufft_out.dtype
+#     assert (
+#         torch.linalg.norm(finufft_out - against_torch) / N**2
+#     ) == pytest.approx(0, abs=1e-05)
+#     assert (
+#         torch.linalg.norm(finufft_out - torch.from_numpy(against_scipy))
+#         / N**2
+#     ) == pytest.approx(0, abs=1e-05)

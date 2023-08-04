@@ -347,7 +347,7 @@ class finufft1D2(torch.autograd.Function):
         return grad_points, grad_targets, None, None, None
 
 
-class finufft1D3(torch.autograd.Function):
+class _finufft1D3(torch.autograd.Function):
     """
     FINUFFT 1d Problem type 3
     """
@@ -895,7 +895,7 @@ class finufft2D2(torch.autograd.Function):
         )
 
 
-class finufft2D3(torch.autograd.Function):
+class _finufft2D3(torch.autograd.Function):
     """
     FINUFFT 2D problem type 3
     """
@@ -1476,7 +1476,7 @@ class finufft3D2(torch.autograd.Function):
         )
 
 
-class finufft3D3(torch.autograd.Function):
+class _finufft3D3(torch.autograd.Function):
     """
     FINUFFT 3D problem type 3
     """

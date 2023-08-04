@@ -2,16 +2,16 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import finufft
 import torch
 
 import pytorch_finufft._err as err
 
-########################################################################################
+###############################################################################
 # 1d Functions
-########################################################################################
+###############################################################################
 
 
 class finufft1D1(torch.autograd.Function):
@@ -120,7 +120,7 @@ class finufft1D1(torch.autograd.Function):
         ctx : Any
             PyTorch context object.
         grad_output : torch.Tensor
-            Backpass gradient output.
+            Backpass gradient wrt. output of NUFFT operation
 
         Returns
         -------

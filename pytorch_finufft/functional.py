@@ -27,7 +27,7 @@ class finufft1D1(torch.autograd.Function):
         output_shape: int,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: dict[str, Union[int, float]] = None,
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -79,6 +79,9 @@ class finufft1D1(torch.autograd.Function):
 
         err._type1_checks((points,), values, output_shape)
 
+        if finufftkwargs is None:
+            finufftkwargs = dict()
+            
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)

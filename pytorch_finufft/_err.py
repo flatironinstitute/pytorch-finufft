@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 
@@ -13,20 +13,20 @@ _COORD_CHAR_TABLE = "xyz"
 
 
 def _type1_checks(
-    points_tuple: tuple[torch.Tensor, ...],
+    points_tuple: Tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    output_shape: Union[int, tuple[int, ...]],
+    output_shape: Union[int, Tuple[int, ...]],
 ) -> None:
     """
     TODO
 
     Parameters
     ----------
-    points_tuple : tuple[torch.Tensor, ...]
+    points_tuple : Tuple[torch.Tensor, ...]
         Tuples of points inputs, eg, (points,) or (points_x, points_y)
     values : torch.Tensor
         Values tensor
-    output_shape : Union[int, tuple[int, ...]]
+    output_shape : Union[int, Tuple[int, ...]]
         Output shape either from the in-place array or directly passed
 
     Raises
@@ -98,7 +98,7 @@ def _type1_checks(
 
 
 def _type2_checks(
-    points_tuple: tuple[torch.Tensor, ...], targets: torch.Tensor
+    points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor
 ) -> None:
     """
     Performs all type, precision, size, device, ... checks for the
@@ -158,9 +158,9 @@ def _type2_checks(
 
 
 def _type3_checks(
-    points_tuple: tuple[torch.Tensor, ...],
+    points_tuple: Tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    targets_tuple: tuple[torch.Tensor, ...],
+    targets_tuple: Tuple[torch.Tensor, ...],
 ) -> None:
     # raise ValueError("Not yet implemented!")
 
@@ -170,7 +170,7 @@ def _type3_checks(
 
 
 def _device_assertions(
-    leading: torch.Tensor, tensors: tuple[torch.Tensor, ...]
+    leading: torch.Tensor, tensors: Tuple[torch.Tensor, ...]
 ) -> None:
     """
     Asserts that all inputs are on the same device by checking against that
@@ -181,7 +181,7 @@ def _device_assertions(
     leading : torch.Tensor
         The tensor against which the device of each tensor in tensors should
         be checked against
-    tensors : tuple[torch.Tensor, ...]
+    tensors : Tuple[torch.Tensor, ...]
         The remaining tensors to check
 
     Raises

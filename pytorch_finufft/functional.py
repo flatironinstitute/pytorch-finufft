@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Tuple, Dict
 
 import finufft
 import torch
@@ -27,7 +27,7 @@ class finufft1D1(torch.autograd.Function):
         output_shape: int,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = None,
+        finufftkwargs: Dict[str, Union[int, float]] = None,
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -58,7 +58,7 @@ class finufft1D1(torch.autograd.Function):
             Array to populate with result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -114,7 +114,7 @@ class finufft1D1(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method.
 
@@ -198,7 +198,7 @@ class finufft1D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 2 NUFFT on the inputs.
@@ -226,7 +226,7 @@ class finufft1D2(torch.autograd.Function):
             Array to take the result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -279,7 +279,7 @@ class finufft1D2(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method
 
@@ -364,7 +364,7 @@ class _finufft1D3(torch.autograd.Function):
         values: torch.Tensor,
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 3 NUFFT on the inputs.
@@ -389,7 +389,7 @@ class _finufft1D3(torch.autograd.Function):
             The non-uniform target points s_k.
         out : Optional[torch.Tensor]
             Array to populate with result in-place, by default None
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -427,7 +427,7 @@ class _finufft1D3(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, Any], ...]:
+    ) -> Tuple[Union[torch.Tensor, Any], ...]:
         """
         Implements gradients for backward mode automatic differentation
 
@@ -476,10 +476,10 @@ class finufft2D1(torch.autograd.Function):
         points_x: torch.Tensor,
         points_y: torch.Tensor,
         values: torch.Tensor,
-        output_shape: Union[int, tuple[int, int]],
+        output_shape: Union[int, Tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -506,7 +506,7 @@ class finufft2D1(torch.autograd.Function):
             The non-uniform points y_j. Valid only between -3pi and 3pi
         values : torch.Tensor
             The source strengths c_j.
-        output_shape : Union[int, tuple[int, int]]
+        output_shape : Union[int, Tuple[int, int]]
             Number of Fourier modes to use in the computation (which
             coincides with the dimensions of the resultant array). If just
             an integer is provided, rather than a 2-tuple, then the integer
@@ -515,7 +515,7 @@ class finufft2D1(torch.autograd.Function):
             Array to populate with result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -573,7 +573,7 @@ class finufft2D1(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method.
 
@@ -692,7 +692,7 @@ class finufft2D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 2 NUFFT on the inputs.
@@ -723,7 +723,7 @@ class finufft2D2(torch.autograd.Function):
             Array to take the result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant torch.Tensor, by default False
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -778,7 +778,7 @@ class finufft2D2(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[
+    ) -> Tuple[
         Union[torch.Tensor, None],
         Union[torch.Tensor, None],
         Union[torch.Tensor, None],
@@ -798,7 +798,7 @@ class finufft2D2(torch.autograd.Function):
 
         Returns
         -------
-        tuple[ Union[torch.Tensor, None], ...]
+        Tuple[ Union[torch.Tensor, None], ...]
             A tuple of derivatives wrt. each argument in the forward method
         """
         _i_sign = ctx.isign
@@ -957,7 +957,7 @@ class _finufft2D3(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements gradients for backward mode automatic differentiation
 
@@ -970,7 +970,7 @@ class _finufft2D3(torch.autograd.Function):
 
         Returns
         -------
-        tuple[Union[torch.Tensor, None], ...]
+        Tuple[Union[torch.Tensor, None], ...]
             Tuple of derivatives with respect to each input
         """
 
@@ -994,10 +994,10 @@ class finufft3D1(torch.autograd.Function):
         points_y: torch.Tensor,
         points_z: torch.Tensor,
         values: torch.Tensor,
-        output_shape: Union[int, tuple[int, int]],
+        output_shape: Union[int, Tuple[int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
@@ -1026,7 +1026,7 @@ class finufft3D1(torch.autograd.Function):
             The non-uniform points z_j. Valid only between -3pi and 3pi.
         values : torch.Tensor
             The source strengths c_j.
-        output_shape : Union[int, tuple[int, int, int]]
+        output_shape : Union[int, Tuple[int, int, int]]
             The number of Fourier modes to use in the computation (which
             coincides with the length of the resultant array in each
             corresponding direction). If only an integer is provided
@@ -1036,7 +1036,7 @@ class finufft3D1(torch.autograd.Function):
             Array to populate with result in-place, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -1096,7 +1096,7 @@ class finufft3D1(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method.
 
@@ -1109,7 +1109,7 @@ class finufft3D1(torch.autograd.Function):
 
         Returns
         -------
-        tuple[Union[torch.Tensor, None], ...]
+        Tuple[Union[torch.Tensor, None], ...]
             A tuple of derivatives wrt. each argument in the forward method
         """
         _i_sign = -1 * ctx.isign
@@ -1258,7 +1258,7 @@ class finufft3D2(torch.autograd.Function):
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = {},
+        finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
         Evalutes the Type 2 NUFFT on the inputs
@@ -1290,7 +1290,7 @@ class finufft3D2(torch.autograd.Function):
             Array to use for in-place result, by default None
         fftshift : bool
             If True centers the 0 mode in the resultant array, by default False
-        finufftkwargs : dict[str, Union[int, float]]
+        finufftkwargs : Dict[str, Union[int, float]]
             Additional arguments will be passed into FINUFFT. See
             https://finufft.readthedocs.io/en/latest/python.html. By default
             an empty dictionary
@@ -1345,7 +1345,7 @@ class finufft3D2(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements derivatives wrt. each argument in the forward method
 
@@ -1358,7 +1358,7 @@ class finufft3D2(torch.autograd.Function):
 
         Returns
         -------
-        tuple[Union[torch.Tensor, None], ...]
+        Tuple[Union[torch.Tensor, None], ...]
             Tuple of derivatives wrt. each argument in the forward method
         """
         _i_sign = ctx.isign
@@ -1558,7 +1558,7 @@ class _finufft3D3(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
         Implements gradients for backward mode automatic differentiation
 
@@ -1571,7 +1571,7 @@ class _finufft3D3(torch.autograd.Function):
 
         Returns
         -------
-        tuple[Union[torch.Tensor, None], ...]
+        Tuple[Union[torch.Tensor, None], ...]
             Tuple of derivatives with respect to each input
         """
 

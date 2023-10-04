@@ -29,13 +29,16 @@ repository = "https://github.com/flatironinstitute/pytorch-finufft"
 homepage = "https://github.com/flatironinstitute/pytorch-finufft"
 
 [project.optional-dependencies]
-dev = ["black", "mypy", "isort", "ruff", "pytest"]
+dev = ["black", "mypy", "isort", "ruff", "pytest", "pytest-cov"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pytorch_finufft.__version__" }
 
 [tool.setuptools.packages]
 find = {}
+
+[tool.setuptools.package-data]
+"pytorch_finufft" = ["py.typed"]
 
 [tool.black]
 target-version = ["py39"]

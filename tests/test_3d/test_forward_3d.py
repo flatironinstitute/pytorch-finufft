@@ -83,3 +83,31 @@ def test_3d_t2_forward_CPU(N: int) -> None:
         assert l_inf_error < 1e-5 * N ** 1.5
         assert l_2_error < 1e-5 * N ** 3
         assert l_1_error < 1e-5 * N ** 4.5
+
+
+@pytest.mark.parametrize("N", Ns)
+def test_t1_forward_CPU(N: int) -> None:
+    """
+    Tests against implementations of the FFT by setting up a uniform grid
+    over which to call FINUFFT through the API.
+    """
+    g = np.mgrid[:N, :N, :N] * 2 * np.pi / N
+    points = torch.from_numpy(g.reshape(3, -1))
+
+    values = torch.randn(*points[0].shape, dtype=torch.complex128)
+
+    print("N is " + str(N))
+    print("shape of points is " + str(points.shape))
+    print("shape of values is " + str(values.shape))
+
+    finufft_out = pytorch_finufft.functional.finufft_type1.apply(
+        points,
+        values,
+        (N, N, N),
+    )
+
+    against_torch = torch.fft.fft2(values.reshape(g[0].shape))
+
+    assert abs((finufft_out - against_torch).sum()) / N**3 == pytest.approx(
+        0, abs=1e-6
+    )

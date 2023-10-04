@@ -1601,6 +1601,10 @@ class _finufft3D3(torch.autograd.Function):
 # Consolidated forward function for all 1D, 2D, and 3D problems for nufft type 1
 ###############################################################################
 
+def get_nufft_func(dim, nufft_type):
+    return getattr(finufft, f"nufft{dim}d{nufft_type}")
+
+
 class finufft_type1(torch.autograd.Function):
     @staticmethod
     def forward(
@@ -1621,8 +1625,8 @@ class finufft_type1(torch.autograd.Function):
             # All this requires is a check on the out array to make sure it is the
             # correct shape.
 
-        err._type1_checks(*points.T, values, output_shape) # revisit these error checks to take into account the shape of points instead of passing them separately
-
+        err._type1_checks(points, values, output_shape) # revisit these error checks to take into account the shape of points instead of passing them separately
+        # ^ make sure these checks check for consistency between output shape and len(points)
 
         if finufftkwargs is None:
             finufftkwargs = dict()
@@ -1645,9 +1649,14 @@ class finufft_type1(torch.autograd.Function):
         ctx.mode_ordering = _mode_ordering
         ctx.finufftkwargs = finufftkwargs
 
+        # this below should be a pre-check
+        ndim = points.shape[0]
+        assert len(output_shape) == ndim
+
+        nufft_func = get_nufft_func(ndim, 1)
         finufft_out = torch.from_numpy(
-            finufft.nufft3d1(
-                *points.data.T.numpy(),
+            nufft_func(
+                *points.data.numpy(),
                 values.data.numpy(),
                 output_shape,
                 modeord=_mode_ordering,
@@ -1705,7 +1714,7 @@ class finufft_type1(torch.autograd.Function):
             for ramp in ramped_grad_output: # we can batch this into finufft
                 backprop_ramp = torch.from_numpy(
                     finufft.nufft3d2(
-                        *points.T.numpy(),
+                        *points.numpy(),
                         ramp.data.numpy(),
                         isign=_i_sign,
                         modeord=_mode_ordering,
@@ -1721,7 +1730,7 @@ class finufft_type1(torch.autograd.Function):
 
             grad_values = torch.from_numpy(
                 finufft.nufft3d2(
-                    *points.T.numpy()
+                    *points.numpy(),
                     np_grad_output,
                     isign=_i_sign,
                     modeord=_mode_ordering,

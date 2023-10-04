@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 
 import torch
 
@@ -13,20 +13,20 @@ _COORD_CHAR_TABLE = "xyz"
 
 
 def _type1_checks(
-    points_tuple: tuple[torch.Tensor, ...],
+    points_tuple: Tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    output_shape: Union[int, tuple[int, ...]],
+    output_shape: Union[int, Tuple[int, ...]],
 ) -> None:
     """
     TODO
 
     Parameters
     ----------
-    points_tuple : tuple[torch.Tensor, ...]
+    points_tuple : Tuple[torch.Tensor, ...]
         Tuples of points inputs, eg, (points,) or (points_x, points_y)
     values : torch.Tensor
         Values tensor
-    output_shape : Union[int, tuple[int, ...]]
+    output_shape : Union[int, Tuple[int, ...]]
         Output shape either from the in-place array or directly passed
 
     Raises
@@ -54,9 +54,7 @@ def _type1_checks(
 
     # Base the dtype and precision checks off of that of values
     complex_dtype = values.dtype
-    real_dtype = (
-        torch.float32 if complex_dtype is torch.complex64 else torch.float64
-    )
+    real_dtype = torch.float32 if complex_dtype is torch.complex64 else torch.float64
 
     # Determine if 1, 2, or 3d and figure out if points, points_x, points_y
     dimension = len(points_tuple)
@@ -81,19 +79,18 @@ def _type1_checks(
         # Ensure all points have the same type and correct precision
         if points_tuple[i].dtype is not real_dtype:
             raise TypeError(
-                f"Got points{coord_char} that is not {real_dtype} valued; points{coord_char} must also be the same precision as values.",
+                f"Got points{coord_char} that is not {real_dtype} valued; "
+                f"points{coord_char} must also be the same precision as values.",
             )
 
-    if type(output_shape) is int:
+    if isinstance(output_shape, int):
         if not output_shape > 0:
             raise ValueError("Got output_shape that was not positive integer")
     else:
         # In this case, output_shape is a tuple ergo iterable
         for i in output_shape:
             if not i > 0:
-                raise ValueError(
-                    "Got output_shape that was not positive integer"
-                )
+                raise ValueError("Got output_shape that was not positive integer")
 
     _device_assertions(values, points_tuple)
 
@@ -101,7 +98,7 @@ def _type1_checks(
 
 
 def _type2_checks(
-    points_tuple: tuple[torch.Tensor, ...], targets: torch.Tensor
+    points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor
 ) -> None:
     """
     Performs all type, precision, size, device, ... checks for the
@@ -132,17 +129,14 @@ def _type2_checks(
         raise TypeError("Got values that is not complex-valued")
 
     complex_dtype = targets.dtype
-    real_dtype = (
-        torch.float32 if complex_dtype is torch.complex64 else torch.float64
-    )
+    real_dtype = torch.float32 if complex_dtype is torch.complex64 else torch.float64
 
     dimension = len(points_tuple)
     targets_dim = len(targets.shape)
 
     if dimension != targets_dim:
         raise ValueError(
-            f"For type 2 {dimension}d FINUFFT, targets must be a {dimension}d "
-            "tensor"
+            f"For type 2 {dimension}d FINUFFT, targets must be a {dimension}d " "tensor"
         )
 
     coord_char = ""
@@ -164,19 +158,19 @@ def _type2_checks(
 
 
 def _type3_checks(
-    points_tuple: tuple[torch.Tensor, ...],
+    points_tuple: Tuple[torch.Tensor, ...],
     values: torch.Tensor,
-    targets_tuple: tuple[torch.Tensor, ...],
+    targets_tuple: Tuple[torch.Tensor, ...],
 ) -> None:
     # raise ValueError("Not yet implemented!")
 
-    dimension = len(points_tuple)
+    # dimension = len(points_tuple)
 
     pass
 
 
 def _device_assertions(
-    leading: torch.Tensor, tensors: tuple[torch.Tensor, ...]
+    leading: torch.Tensor, tensors: Tuple[torch.Tensor, ...]
 ) -> None:
     """
     Asserts that all inputs are on the same device by checking against that
@@ -187,7 +181,7 @@ def _device_assertions(
     leading : torch.Tensor
         The tensor against which the device of each tensor in tensors should
         be checked against
-    tensors : tuple[torch.Tensor, ...]
+    tensors : Tuple[torch.Tensor, ...]
         The remaining tensors to check
 
     Raises
@@ -200,6 +194,5 @@ def _device_assertions(
     for t in tensors:
         if not t.device == leading.device:
             raise ValueError(
-                "Ensure that all tensors passed to FINUFFT are on the same "
-                "device"
+                "Ensure that all tensors passed to FINUFFT are on the same " "device"
             )

@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 import scipy
 import torch
-from numpy.testing import assert_almost_equal
 
 import pytorch_finufft
 

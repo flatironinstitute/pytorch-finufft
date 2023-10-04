@@ -1,22 +1,18 @@
-# Poetry pyproject.toml: https://python-poetry.org/docs/pyproject/
 [build-system]
-requires = ["poetry_core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
-[tool.poetry]
+[project]
 name = "pytorch_finufft"
-version = "0.0.0"
 description = "Pytorch bindings for the FINUFFT Library"
 readme = "README.md"
-authors = ["Matthew Meeker <mmeeker@flatironinstitute.org>", "Michael Eickenberg <meickenberg@flatironinstitute.org>", "Brian Ward <bward@flatironinstitute.org>"]
-license = "MIT"
-repository = "https://github.com/flatironinstitute/pytorch-finufft"
-homepage = "https://github.com/flatironinstitute/pytorch-finufft"
-
-# Keywords description https://python-poetry.org/docs/pyproject/#keywords
-keywords = []  #! Update me
-
-# Pypi classifiers: https://pypi.org/classifiers/
+authors = [
+  {name = "Matthew Meeker", email="mmeeker@flatironinstitute.org"},
+  {name = "Michael Eickenberg", email="meickenberg@flatironinstitute.org"},
+  {name = "Brian Ward", email="bward@flatironinstitute.org"},
+]
+license = { text = "MIT" }
+dependencies = ["finufft", "torch >= 2", "numpy", "scipy"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -26,51 +22,25 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.9",
 ]
+dynamic = ["version"]
 
+[project.urls]
+repository = "https://github.com/flatironinstitute/pytorch-finufft"
+homepage = "https://github.com/flatironinstitute/pytorch-finufft"
 
+[project.optional-dependencies]
+dev = ["black", "mypy", "isort", "ruff", "pytest"]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.12"
-finufft = "^2.1.0"
-torch = "^2.0.1"
-numpy = "^1.24.3"
-scipy = "^1.10.1"
-nvidia-cublas-cu11 = { version = "11.10.3.66", platform = 'linux' }
-nvidia-cuda-cupti-cu11 = { version = "11.7.101", platform = 'linux' }
-nvidia-cuda-nvrtc-cu11 = { version = "11.7.99", platform = 'linux' }
-nvidia-cuda-runtime-cu11 = { version = "11.7.99", platform = 'linux' }
-nvidia-cudnn-cu11 = { version = "8.5.0.96", platform = 'linux' }
-nvidia-cufft-cu11 = { version = "10.9.0.58", platform = 'linux' }
-nvidia-curand-cu11 = { version = "10.2.10.91", platform = 'linux' }
-nvidia-cusolver-cu11 = { version = "11.4.0.1", platform = 'linux' }
-nvidia-cusparse-cu11 = { version = "11.7.4.91", platform = 'linux' }
-nvidia-nccl-cu11 = { version = "2.14.3", platform = 'linux' }
-nvidia-nvtx-cu11 = { version = "11.7.91", platform = 'linux' }
-triton = { version = "2.0.0", platform = 'linux' }
+[tool.setuptools.dynamic]
+version = { attr = "pytorch_finufft.__version__" }
 
-[tool.poetry.dev-dependencies]
-bandit = "^1.7.1"
-black = {version = "^23.3.0", allow-prereleases = true}
-darglint = "^1.8.1"
-isort = {extras = ["colors"], version = "^5.10.1"}
-mypy = "^1.0"
-mypy-extensions = "^1.0.0"
-pre-commit = "^3.3.2"
-pydocstyle = "^6.1.1"
-pylint = "^2.11.1"
-pytest = "^7.3.1"
-pyupgrade = "^3.4.0"
-coverage = "^7.2.7"
-coverage-badge = "^1.1.0"
-pytest-html = "^3.1.1"
-pytest-cov = "^4.1.0"
+[tool.setuptools.packages]
+find = {}
 
 [tool.black]
-# https://github.com/psf/black
 target-version = ["py39"]
-line-length = 80
+line-length = 88
 color = true
-
 exclude = '''
 /(
     \.git
@@ -88,25 +58,13 @@ exclude = '''
 '''
 
 [tool.isort]
-# https://github.com/timothycrosley/isort/
-py_version = 39
-line_length = 88
-
-known_typing = ["typing", "types", "typing_extensions", "mypy", "mypy_extensions"]
-sections = ["FUTURE", "TYPING", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-include_trailing_comma = true
 profile = "black"
-multi_line_output = 3
-indent = 4
-color_output = true
 
 [tool.mypy]
-# https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
 python_version = 3.9
 pretty = true
 show_traceback = true
 color_output = true
-
 allow_redefinition = false
 check_untyped_defs = true
 disallow_any_generics = true
@@ -128,17 +86,16 @@ warn_unused_ignores = true
 
 
 [tool.pytest.ini_options]
-# https://docs.pytest.org/en/6.2.x/customize.html#pyproject-toml
-# Directories that are not visited by pytest collector:
-norecursedirs =["hooks", "*.egg", ".eggs", "dist", "build", "docs", ".tox", ".git", "__pycache__"]
-doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL"]
-
-# Extra options:
-addopts = [
-  "--strict-markers",
-  "--tb=short",
-  "--doctest-modules",
-  "--doctest-continue-on-failure",
+norecursedirs = [
+  "hooks",
+  "*.egg",
+  ".eggs",
+  "dist",
+  "build",
+  "docs",
+  ".tox",
+  ".git",
+  "__pycache__",
 ]
 
 [tool.coverage.run]
@@ -149,7 +106,3 @@ source = "pytorch_finufft"
 
 [coverage.run]
 branch = true
-
-[coverage.report]
-fail_under = 50
-show_missing = true

@@ -81,7 +81,7 @@ class finufft1D1(torch.autograd.Function):
 
         if finufftkwargs is None:
             finufftkwargs = dict()
-            
+
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)
@@ -140,13 +140,14 @@ class finufft1D1(torch.autograd.Function):
         if ctx.needs_input_grad[0]:
             # w.r.t. the points x_j
 
-            k_ramp = torch.arange(
-                0, grad_output.shape[-1], dtype=points.dtype
-            ) - (grad_output.shape[-1] // 2)
+            k_ramp = torch.arange(0, grad_output.shape[-1], dtype=points.dtype) - (
+                grad_output.shape[-1] // 2
+            )
             if _mode_ordering != 0:
                 k_ramp = torch.fft.ifftshift(k_ramp)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_grad_output = k_ramp * grad_output * 1j * _i_sign
 
             np_points = (points.data).numpy()
@@ -311,7 +312,8 @@ class finufft1D2(torch.autograd.Function):
             if _mode_ordering != 0:
                 k_ramp = torch.fft.ifftshift(k_ramp)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_targets = k_ramp * targets * 1j * _i_sign
 
             np_points = (points.data).numpy()
@@ -545,7 +547,8 @@ class finufft2D1(torch.autograd.Function):
             #   to note instead that there is a conflict in fftshift
             if _mode_ordering != 1:
                 raise ValueError(
-                    "Double specification of ordering; only one of fftshift and modeord should be provided"
+                    "Double specification of ordering; only one of fftshift and "
+                    "modeord should be provided"
                 )
             _mode_ordering = 0
 
@@ -608,7 +611,8 @@ class finufft2D1(torch.autograd.Function):
             if _mode_ordering != 0:
                 XX = torch.fft.ifftshift(XX)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_grad_output = XX * grad_output * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -634,7 +638,8 @@ class finufft2D1(torch.autograd.Function):
             if _mode_ordering != 0:
                 YY = torch.fft.ifftshift(YY)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_grad_output = YY * grad_output * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -747,7 +752,8 @@ class finufft2D2(torch.autograd.Function):
         if fftshift:
             if _mode_ordering != 1:
                 raise ValueError(
-                    "Double specification of ordering; only one of fftshift and modeord should be provided."
+                    "Double specification of ordering; only one of fftshift and "
+                    "modeord should be provided."
                 )
             _mode_ordering = 0
 
@@ -816,7 +822,8 @@ class finufft2D2(torch.autograd.Function):
             if _mode_ordering != 0:
                 XX = torch.fft.ifftshift(XX)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_targets = XX * targets * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -845,7 +852,8 @@ class finufft2D2(torch.autograd.Function):
             if _mode_ordering != 0:
                 YY = torch.fft.ifftshift(YY)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_targets = YY * targets * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -1059,7 +1067,8 @@ class finufft3D1(torch.autograd.Function):
             #   to note instead that there is a conflict in fftshift
             if _mode_ordering != 1:
                 raise ValueError(
-                    "Double specification of ordering; only one of fftshift and modeord should be provided"
+                    "Double specification of ordering; only one of fftshift and "
+                    "modeord should be provided"
                 )
             _mode_ordering = 0
 
@@ -1128,7 +1137,8 @@ class finufft3D1(torch.autograd.Function):
             if _mode_ordering != 0:
                 XX = torch.fft.ifftshift(XX)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_grad_output = XX * grad_output * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -1154,7 +1164,8 @@ class finufft3D1(torch.autograd.Function):
             if _mode_ordering != 0:
                 YY = torch.fft.ifftshift(YY)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_grad_output = YY * grad_output * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -1180,7 +1191,8 @@ class finufft3D1(torch.autograd.Function):
             if _mode_ordering != 0:
                 ZZ = torch.fft.ifftshift(ZZ)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_grad_output = ZZ * grad_output * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -1373,7 +1385,8 @@ class finufft3D2(torch.autograd.Function):
             if _mode_ordering != 0:
                 XX = torch.fft.ifftshift(XX)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_targets = XX * targets * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -1400,7 +1413,8 @@ class finufft3D2(torch.autograd.Function):
             if _mode_ordering != 0:
                 YY = torch.fft.ifftshift(YY)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_targets = YY * targets * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()
@@ -1427,7 +1441,8 @@ class finufft3D2(torch.autograd.Function):
             if _mode_ordering != 0:
                 ZZ = torch.fft.ifftshift(ZZ)
 
-            # TODO analytically work out if we can simplify this *1j, the below conj, and below *values
+            # TODO analytically work out if we can simplify this *1j,
+            # the below conj, and below *values
             ramped_targets = ZZ * targets * 1j * _i_sign
 
             np_points_x = points_x.data.numpy()

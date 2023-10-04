@@ -26,12 +26,10 @@ Ns = [
 cases = [torch.tensor([1.0, 2.5, -1.0, -1.5, 1.5], dtype=torch.complex128)]
 for n in Ns:
     cases.append(
-        torch.randn(n, dtype=torch.float64)
-        + 1j * torch.randn(n, dtype=torch.float64)
+        torch.randn(n, dtype=torch.float64) + 1j * torch.randn(n, dtype=torch.float64)
     )
     cases.append(
-        torch.randn(n, dtype=torch.float32)
-        + 1j * torch.randn(n, dtype=torch.float32)
+        torch.randn(n, dtype=torch.float32) + 1j * torch.randn(n, dtype=torch.float32)
     )
 
 
@@ -48,9 +46,7 @@ def test_1d_t1_forward_CPU(values: torch.Tensor) -> None:
     against_torch = torch.fft.fft(values)
     against_scipy = torch.tensor(scipy.fft.fft(val_np))
 
-    data_type = (
-        torch.float64 if values.dtype is torch.complex128 else torch.float32
-    )
+    data_type = torch.float64 if values.dtype is torch.complex128 else torch.float32
 
     finufft1D1_out = pytorch_finufft.functional.finufft1D1.apply(
         2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type),
@@ -83,9 +79,7 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
 
     against_torch = torch.fft.ifft(inv_targets)
 
-    data_type = (
-        torch.float64 if targets.dtype is torch.complex128 else torch.float32
-    )
+    data_type = torch.float64 if targets.dtype is torch.complex128 else torch.float32
 
     finufft_out = (
         pytorch_finufft.functional.finufft1D2.apply(
@@ -95,9 +89,9 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
         / N
     )
 
-    assert torch.norm(
-        finufft_out - np.array(targets)
-    ) / N**2 == pytest.approx(0, abs=1e-05)
+    assert torch.norm(finufft_out - np.array(targets)) / N**2 == pytest.approx(
+        0, abs=1e-05
+    )
     assert torch.norm(finufft_out - against_torch) / N**2 == pytest.approx(
         0, abs=1e-05
     )

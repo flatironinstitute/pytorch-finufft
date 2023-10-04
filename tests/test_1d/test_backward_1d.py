@@ -84,9 +84,7 @@ def test_t1_backward_CPU_points(
 
     inputs = (points, values)
 
-    assert gradcheck(
-        apply_finufft1d1(modifier, fftshift, isign), inputs, atol=1e-4 * N
-    )
+    assert gradcheck(apply_finufft1d1(modifier, fftshift, isign), inputs, atol=1e-4 * N)
 
 
 # Case generation for the values tests

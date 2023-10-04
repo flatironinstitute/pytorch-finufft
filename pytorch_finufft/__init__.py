@@ -1,17 +1,7 @@
 # type: ignore[attr-defined]
 """Pytorch bindings for the FINUFFT Library"""
 
-import sys
-from importlib import metadata as importlib_metadata
+from . import functional, nn
 
-from . import functional
-
-
-def get_version() -> str:
-    try:
-        return importlib_metadata.version(__name__)
-    except importlib_metadata.PackageNotFoundError:  # pragma: no cover
-        return "unknown"
-
-
-version: str = get_version()
+__all__ = ["functional", "nn"]
+__version__ = "0.1.0"

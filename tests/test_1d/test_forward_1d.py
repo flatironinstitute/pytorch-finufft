@@ -105,6 +105,14 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
         0, abs=1e-05
     )
 
+    abs_errors = torch.abs(finufft_out - against_torch)
+    l_inf_error = abs_errors.max()
+    l_2_error = torch.sqrt(torch.sum(abs_errors**2))
+    l_1_error = torch.sum(abs_errors)
+
+    assert l_inf_error < 3.5e-3 * N ** .6
+    assert l_2_error < 7.5e-4 * N ** 1.1
+    assert l_1_error < 5e-4 * N ** 1.6
 
 # @pytest.mark.parametrize("values", cases)
 # def test_1d_t3_forward_CPU(values: torch.Tensor) -> None:

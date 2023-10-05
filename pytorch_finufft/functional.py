@@ -4,6 +4,7 @@ Implementations of the corresponding Autograd functions
 
 from typing import Any, Dict, Optional, Tuple, Union
 
+import numpy as np
 import finufft
 import torch
 
@@ -1643,7 +1644,7 @@ class finufft_type1(torch.autograd.Function):
                 )
             _mode_ordering = 0
 
-        ctx.save_for_backward(*points.T, values)
+        ctx.save_for_backward(points, values)
 
         ctx.isign = _i_sign
         ctx.mode_ordering = _mode_ordering
@@ -1697,10 +1698,15 @@ class finufft_type1(torch.autograd.Function):
         end_points = start_points + grad_output.shape
         slices = tuple(slice(start, end) for start, end in zip(start_points, end_points))
 
-        coord_ramps = torch.mgrid[slices]
+        # CPU idiosyncracy that needs to be done differently
+        coord_ramps = torch.from_numpy(np.mgrid[slices])
 
         grads_points = None
         grad_values = None
+
+        ndim = points.shape[0]
+
+        nufft_func = get_nufft_func(ndim, 2)
 
         if ctx.needs_input_grad[0]:
             # wrt points
@@ -1713,7 +1719,7 @@ class finufft_type1(torch.autograd.Function):
             grads_points = []
             for ramp in ramped_grad_output: # we can batch this into finufft
                 backprop_ramp = torch.from_numpy(
-                    finufft.nufft3d2(
+                    nufft_func(
                         *points.numpy(),
                         ramp.data.numpy(),
                         isign=_i_sign,
@@ -1729,7 +1735,7 @@ class finufft_type1(torch.autograd.Function):
             np_grad_output = grad_output.data.numpy()
 
             grad_values = torch.from_numpy(
-                finufft.nufft3d2(
+                nufft_func(
                     *points.numpy(),
                     np_grad_output,
                     isign=_i_sign,

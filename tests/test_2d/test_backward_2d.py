@@ -5,8 +5,11 @@ from torch.autograd import gradcheck
 
 import pytorch_finufft
 
+from functools import partial
+
 torch.set_default_tensor_type(torch.DoubleTensor)
 torch.set_default_dtype(torch.float64)
+torch.manual_seed(0)
 
 ######################################################################
 # APPLY WRAPPERS
@@ -95,6 +98,28 @@ def test_t1_backward_CPU_values(
     inputs = (points_x, points_y, values)
 
     assert gradcheck(apply_finufft2d1(modifier, fftshift, isign), inputs)
+
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_consolidated_backward_CPU_values(N: int, modifier: int, fftshift: bool, isign: int) -> None:
+
+    points = torch.rand((2, N), dtype=torch.float64) * 2 * np.pi
+    values = torch.randn(N, dtype=torch.complex128)
+
+    points.requires_grad = False
+    values.requires_grad = True
+
+    inputs = (points, values)
+
+    def func(points, values):
+        return pytorch_finufft.functional.finufft_type1.apply(
+            points, values, (N,N + modifier), None, fftshift, dict(isign=isign)
+        )
+
+    assert gradcheck(func, inputs)
 
 
 @pytest.mark.parametrize("N", Ns)

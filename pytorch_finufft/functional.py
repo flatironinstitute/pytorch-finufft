@@ -1694,7 +1694,7 @@ class finufft_type1(torch.autograd.Function):
 
         points, values = ctx.saved_tensors
 
-        start_points = -np.array(grad_output.shape) // 2
+        start_points = -(np.array(grad_output.shape) // 2)
         end_points = start_points + grad_output.shape
         slices = tuple(slice(start, end) for start, end in zip(start_points, end_points))
 

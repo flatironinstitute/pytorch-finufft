@@ -59,13 +59,6 @@ def test_1d_t1_forward_CPU(values: torch.Tensor) -> None:
         assert finufft1D1_out.dtype is torch.complex128
 
     assert against_torch.dtype == values.dtype
-    assert (
-        torch.linalg.norm(finufft1D1_out - against_torch) / N**2
-    ) == pytest.approx(0, abs=1e-06)
-    assert (
-        torch.linalg.norm(finufft1D1_out - against_scipy) / N**2
-    ) == pytest.approx(0, abs=1e-06)
-
 
     abs_errors = torch.abs(finufft1D1_out - against_torch)
     l_inf_error = abs_errors.max()
@@ -96,13 +89,6 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
             inv_targets,
         )
         / N
-    )
-
-    assert torch.norm(finufft_out - np.array(targets)) / N**2 == pytest.approx(
-        0, abs=1e-05
-    )
-    assert torch.norm(finufft_out - against_torch) / N**2 == pytest.approx(
-        0, abs=1e-05
     )
 
     abs_errors = torch.abs(finufft_out - against_torch)

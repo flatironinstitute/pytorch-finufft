@@ -124,6 +124,28 @@ def test_t1_consolidated_backward_CPU_values(N: int, modifier: int, fftshift: bo
 
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_consolidated_backward_CPU_points(N: int, modifier: int, fftshift: bool, isign: int) -> None:
+
+    points = torch.rand((2, N), dtype=torch.float64) * 2 * np.pi
+    values = torch.randn(N, dtype=torch.complex128)
+
+    points.requires_grad = True
+    values.requires_grad = False
+
+    inputs = (points, values)
+
+    def func(points, values):
+        return pytorch_finufft.functional.finufft_type1.apply(
+            points, values, (N,N + modifier), None, fftshift, dict(isign=isign)
+        )
+
+    assert gradcheck(func, inputs, atol=1e-5 * N)
+
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
 @pytest.mark.parametrize("fftshift", [True, False])
 @pytest.mark.parametrize("isign", [-1, 1])
 def test_t1_backward_CPU_points_x(

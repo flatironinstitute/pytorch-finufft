@@ -1691,7 +1691,6 @@ class finufft_type1(torch.autograd.Function):
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
 
-
         points, values = ctx.saved_tensors
 
         start_points = -(np.array(grad_output.shape) // 2)
@@ -1712,7 +1711,7 @@ class finufft_type1(torch.autograd.Function):
             # wrt points
 
             if _mode_ordering != 0:
-                coord_ramps = torch.fft.ifftshift(coord_ramps)
+                coord_ramps = torch.fft.ifftshift(coord_ramps, dim=tuple(range(1, ndim+1)))
             
             ramped_grad_output = coord_ramps * grad_output[np.newaxis] * 1j * _i_sign
 

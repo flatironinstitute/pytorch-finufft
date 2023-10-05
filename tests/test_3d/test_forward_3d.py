@@ -41,9 +41,15 @@ def test_3d_t1_forward_CPU(N: int) -> None:
 
         against_torch = torch.fft.fftn(values.reshape(g[0].shape))
 
-        assert abs((finufft_out - against_torch).sum()) / (N**4) == pytest.approx(
-            0, abs=1e-6
-        )
+        abs_errors = torch.abs(finufft_out - against_torch)
+        l_inf_error = abs_errors.max()
+        l_2_error = torch.sqrt(torch.sum(abs_errors**2))
+        l_1_error = torch.sum(abs_errors)
+
+        assert l_inf_error < 2e-5 * N ** 1.5
+        assert l_2_error < 1e-5 * N ** 3
+        assert l_1_error < 1e-5 * N ** 4.5
+
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -69,6 +75,11 @@ def test_3d_t2_forward_CPU(N: int) -> None:
 
         against_torch = torch.fft.ifftn(values)
 
-        assert (abs((finufft_out - against_torch).sum())) / (N**4) == pytest.approx(
-            0, abs=1e-6
-        )
+        abs_errors = torch.abs(finufft_out - against_torch)
+        l_inf_error = abs_errors.max()
+        l_2_error = torch.sqrt(torch.sum(abs_errors**2))
+        l_1_error = torch.sum(abs_errors)
+
+        assert l_inf_error < 1e-5 * N ** 1.5
+        assert l_2_error < 1e-5 * N ** 3
+        assert l_1_error < 1e-5 * N ** 4.5

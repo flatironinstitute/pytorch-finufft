@@ -45,28 +45,14 @@ def test_2d_t1_forward_CPU(N: int) -> None:
 
     against_torch = torch.fft.fft2(values.reshape(g[0].shape))
 
-    assert abs((finufft_out - against_torch).sum()) / (N**3) == pytest.approx(
-        0, abs=1e-6
-    )
+    abs_errors = torch.abs(finufft_out - against_torch)
+    l_inf_error = abs_errors.max()
+    l_2_error = torch.sqrt(torch.sum(abs_errors**2))
+    l_1_error = torch.sum(abs_errors)
 
-    values = torch.randn(*x.shape, dtype=torch.complex64)
-
-    finufft_out = pytorch_finufft.functional.finufft2D1.apply(
-        torch.from_numpy(x).to(torch.float32),
-        torch.from_numpy(y).to(torch.float32),
-        values,
-        N,
-    )
-
-    against_torch = torch.fft.fft2(values.reshape(g[0].shape))
-
-    # NOTE -- the below tolerance is set to 1e-5 instead of -6 due
-    #   to the occasional failing case that seems to be caused by
-    #   the randomness of the test cases in addition to the expected
-    #   accruation of numerical inaccuracies
-    assert abs((finufft_out - against_torch).sum()) / (N**3) == pytest.approx(
-        0, abs=1e-5
-    )
+    assert l_inf_error < 5e-5 * N
+    assert l_2_error < 1e-5 * N ** 2
+    assert l_1_error < 1e-5 * N ** 3
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -109,9 +95,14 @@ def test_2d_t2_forward_CPU(N: int) -> None:
 
     against_torch = torch.fft.ifft2(values)
 
-    assert abs((finufft_out - against_torch).sum()) / (N**3) == pytest.approx(
-        0, abs=1e-6
-    )
+    abs_errors = torch.abs(finufft_out - against_torch)
+    l_inf_error = abs_errors.max()
+    l_2_error = torch.sqrt(torch.sum(abs_errors**2))
+    l_1_error = torch.sum(abs_errors)
+
+    assert l_inf_error < 1e-5 * N
+    assert l_2_error < 1e-5 * N ** 2
+    assert l_1_error < 1e-5 * N ** 3
 
 
 # @pytest.mark.parametrize("N", Ns)

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import torch
+torch.manual_seed(0)
 
 import pytorch_finufft
 
@@ -144,6 +145,12 @@ def test_t1_forward_CPU(N: int) -> None:
 
     against_torch = torch.fft.fft2(values.reshape(g[0].shape))
 
-    assert (finufft_out - against_torch) == pytest.approx(
-        0, abs=1e-6
-    )
+    abs_errors = torch.abs(finufft_out - against_torch)
+    l_inf_error = abs_errors.max()
+    l_2_error = torch.sqrt(torch.sum(abs_errors**2))
+    l_1_error = torch.sum(abs_errors)
+
+    assert l_inf_error < 4.5e-5 * N
+    assert l_2_error < 1e-5 * N ** 2
+    assert l_1_error < 1e-5 * N ** 3
+

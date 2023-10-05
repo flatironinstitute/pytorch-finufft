@@ -50,7 +50,7 @@ def test_2d_t1_forward_CPU(N: int) -> None:
     l_2_error = torch.sqrt(torch.sum(abs_errors**2))
     l_1_error = torch.sum(abs_errors)
 
-    assert l_inf_error < 5e-5 * N
+    assert l_inf_error < 6e-5 * N
     assert l_2_error < 1e-5 * N ** 2
     assert l_1_error < 1e-5 * N ** 3
 

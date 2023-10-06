@@ -55,18 +55,18 @@ def apply_finufft2d2(fftshift: bool, isign: int):
 
 Ns = [
     3,
-    # 5,
-    # 8,
-    # 10,
-    # 15,
-    # 16,
+    5,
+    #8,
+    #10,
+    #15,
+    #16,
 ]
 
 length_modifiers = [
     0,
     1,
-    # 4,
-    -1,
+    #2,
+    #-1,
 ]
 
 

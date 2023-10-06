@@ -6,7 +6,7 @@ pipeline {
     timeout(time: 1, unit: 'HOURS')
   }
   stages {
-    stage('main') {
+    stage('CUDA Tests') {
       agent {
          dockerfile {
             filename 'ci/docker/Dockerfile-cuda11.8'
@@ -23,16 +23,18 @@ pipeline {
       steps {
 
     // TODO - reconsider install strategy once finufft/cufinufft 2.2 is released
-    checkout([$class: 'GitSCM',
-            branches: [[name: '*/master']],
-            userRemoteConfigs: [[url: "https://github.com/flatironinstitute/finufft"]]]
-            )
+  checkout scmGit(branches: [[name: '*/master']],
+                  extensions: [cloneOption(noTags: true, reference: '', shallow: true),
+                               [$class: 'RelativeTargetDirectory', relativeTargetDir: 'finufft'],
+                               cleanAfterCheckout()],
+                  userRemoteConfigs: [[url: 'https://github.com/flatironinstitute/finufft']])
 
     sh '''#!/bin/bash -ex
       nvidia-smi
     '''
     sh '''#!/bin/bash -ex
       echo $HOME
+      ls
     '''
     sh '''#!/bin/bash -ex
         cd finufft

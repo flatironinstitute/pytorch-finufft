@@ -84,16 +84,15 @@ def test_3d_t2_forward_CPU(N: int) -> None:
         assert l_1_error < 1e-5 * N**4.5
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_forward_CPU(N: int) -> None:
+def check_t1_forward(N: int, device: str) -> None:
     """
     Tests against implementations of the FFT by setting up a uniform grid
     over which to call FINUFFT through the API.
     """
     g = np.mgrid[:N, :N, :N] * 2 * np.pi / N
-    points = torch.from_numpy(g.reshape(3, -1))
+    points = torch.from_numpy(g.reshape(3, -1)).to(device)
 
-    values = torch.randn(*points[0].shape, dtype=torch.complex128)
+    values = torch.randn(*points[0].shape, dtype=torch.complex128).to(device)
 
     print("N is " + str(N))
     print("shape of points is " + str(points.shape))
@@ -115,36 +114,13 @@ def test_t1_forward_CPU(N: int) -> None:
     assert l_inf_error < 1.5e-5 * N**1.5
     assert l_2_error < 1e-5 * N**3
     assert l_1_error < 1e-5 * N**4.5
+
+
+@pytest.mark.parametrize("N", Ns)
+def test_t1_forward_CPU(N: int) -> None:
+    check_t1_forward(N, "cpu")
 
 
 @pytest.mark.parametrize("N", Ns)
 def test_t1_forward_cuda(N: int) -> None:
-    """
-    Tests against implementations of the FFT by setting up a uniform grid
-    over which to call FINUFFT through the API.
-    """
-    g = np.mgrid[:N, :N, :N] * 2 * np.pi / N
-    points = torch.from_numpy(g.reshape(3, -1)).to("cuda")
-
-    values = torch.randn(*points[0].shape, dtype=torch.complex128).to("cuda")
-
-    print("N is " + str(N))
-    print("shape of points is " + str(points.shape))
-    print("shape of values is " + str(values.shape))
-
-    finufft_out = pytorch_finufft.functional.finufft_type1.apply(
-        points,
-        values,
-        (N, N, N),
-    )
-
-    against_torch = torch.fft.fftn(values.reshape(g[0].shape))
-
-    abs_errors = torch.abs(finufft_out - against_torch)
-    l_inf_error = abs_errors.max()
-    l_2_error = torch.sqrt(torch.sum(abs_errors**2))
-    l_1_error = torch.sum(abs_errors)
-
-    assert l_inf_error < 1.5e-5 * N**1.5
-    assert l_2_error < 1e-5 * N**3
-    assert l_1_error < 1e-5 * N**4.5
+    check_t1_forward(N, "cuda")

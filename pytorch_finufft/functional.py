@@ -11,7 +11,7 @@ try:
     import cufinufft
 
     CUFINUFFT_AVAIL = True
-except:
+except ImportError:
     CUFINUFFT_AVAIL = False
 import torch
 
@@ -1646,11 +1646,13 @@ class finufft_type1(torch.autograd.Function):
             # All this requires is a check on the out array to make sure it is the
             # correct shape.
 
-        err._type1_checks(
-            points, values, output_shape
-        )  # revisit these error checks to take into account the shape of points instead of passing them separately
-        # ^ make sure these checks check for consistency between output shape and len(points)
-        # need device checks
+        # TODO:
+        # revisit these error checks to take into account the shape of points
+        # instead of passing them separately
+        # make sure these checks check for consistency between output shape and
+        # len(points)
+        # Also need device checks
+        err._type1_checks(points, values, output_shape)
 
         if finufftkwargs is None:
             finufftkwargs = dict()
@@ -1663,7 +1665,8 @@ class finufft_type1(torch.autograd.Function):
             #   to note instead that there is a conflict in fftshift
             if _mode_ordering != 1:
                 raise ValueError(
-                    "Double specification of ordering; only one of fftshift and modeord should be provided"
+                    "Double specification of ordering; only one of fftshift and "
+                    "modeord should be provided"
                 )
             _mode_ordering = 0
 

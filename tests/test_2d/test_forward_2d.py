@@ -2,9 +2,10 @@ import numpy as np
 import pytest
 import torch
 
+import pytorch_finufft
+
 torch.manual_seed(0)
 
-import pytorch_finufft
 
 # Case generation
 Ns = [

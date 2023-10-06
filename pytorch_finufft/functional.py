@@ -6,6 +6,11 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import finufft
+try:
+    import cufinufft
+    CUFINUFFT_AVAIL = True
+except:
+    CUFINUFFT_AVAIL = False
 import torch
 
 import pytorch_finufft._err as err
@@ -1602,7 +1607,9 @@ class _finufft3D3(torch.autograd.Function):
 # Consolidated forward function for all 1D, 2D, and 3D problems for nufft type 1
 ###############################################################################
 
-def get_nufft_func(dim, nufft_type):
+def get_nufft_func(dim, nufft_type, device_type):
+    if device_type == 'cuda':
+        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")
     return getattr(finufft, f"nufft{dim}d{nufft_type}")
 
 
@@ -1654,8 +1661,15 @@ class finufft_type1(torch.autograd.Function):
         ndim = points.shape[0]
         assert len(output_shape) == ndim
 
-        nufft_func = get_nufft_func(ndim, 1)
-        finufft_out = torch.from_numpy(
+        nufft_func = get_nufft_func(ndim, 1, points.device.type)
+        if points.device.type == 'cuda':
+            finufft_out = nufft_func(
+                *points, values, output_shape,
+                # modeord=_mode_ordering, # TODO(cuda): modeord not supported?
+                isign=_i_sign, **finufftkwargs
+            )
+        else:
+            finufft_out = torch.from_numpy(
             nufft_func(
                 *points.data.numpy(),
                 values.data.numpy(),
@@ -1712,7 +1726,7 @@ class finufft_type1(torch.autograd.Function):
 
             if _mode_ordering != 0:
                 coord_ramps = torch.fft.ifftshift(coord_ramps, dim=tuple(range(1, ndim+1)))
-            
+
             ramped_grad_output = coord_ramps * grad_output[np.newaxis] * 1j * _i_sign
 
             grads_points = []
@@ -1727,7 +1741,7 @@ class finufft_type1(torch.autograd.Function):
                     ))
                 grad_points = (backprop_ramp.conj() * values).real
                 grads_points.append(grad_points)
-            
+
             grads_points = torch.stack(grads_points)
 
         if ctx.needs_input_grad[1]:

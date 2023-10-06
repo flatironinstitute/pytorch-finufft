@@ -42,8 +42,7 @@ pipeline {
         cuda_arch="70"
 
         cmake -B build . -DFINUFFT_USE_CUDA=ON \
-                         -DFINUFFT_USE_CPU=OFF \
-                         -DFINUFFT_BUILD_TESTS=ON \
+                         -DFINUFFT_BUILD_TESTS=OFF \
                          -DCMAKE_CUDA_ARCHITECTURES="$cuda_arch" \
                          -DBUILD_TESTING=ON
         cd build

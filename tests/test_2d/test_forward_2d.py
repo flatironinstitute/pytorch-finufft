@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import torch
+
 torch.manual_seed(0)
 
 import pytorch_finufft
@@ -52,8 +53,8 @@ def test_2d_t1_forward_CPU(N: int) -> None:
     l_1_error = torch.sum(abs_errors)
 
     assert l_inf_error < 5e-5 * N
-    assert l_2_error < 1e-5 * N ** 2
-    assert l_1_error < 1e-5 * N ** 3
+    assert l_2_error < 1e-5 * N**2
+    assert l_1_error < 1e-5 * N**3
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -102,8 +103,8 @@ def test_2d_t2_forward_CPU(N: int) -> None:
     l_1_error = torch.sum(abs_errors)
 
     assert l_inf_error < 1e-5 * N
-    assert l_2_error < 1e-5 * N ** 2
-    assert l_1_error < 1e-5 * N ** 3
+    assert l_2_error < 1e-5 * N**2
+    assert l_1_error < 1e-5 * N**3
 
 
 # @pytest.mark.parametrize("N", Ns)
@@ -151,9 +152,8 @@ def test_t1_forward_CPU(N: int) -> None:
     l_1_error = torch.sum(abs_errors)
 
     assert l_inf_error < 4.5e-5 * N
-    assert l_2_error < 1e-5 * N ** 2
-    assert l_1_error < 1e-5 * N ** 3
-
+    assert l_2_error < 1e-5 * N**2
+    assert l_1_error < 1e-5 * N**3
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -163,9 +163,9 @@ def test_t1_forward_cuda(N: int) -> None:
     over which to call FINUFFT through the API.
     """
     g = np.mgrid[:N, :N] * 2 * np.pi / N
-    points = torch.from_numpy(g.reshape(2, -1)).to('cuda')
+    points = torch.from_numpy(g.reshape(2, -1)).to("cuda")
 
-    values = torch.randn(*points[0].shape, dtype=torch.complex128).to('cuda')
+    values = torch.randn(*points[0].shape, dtype=torch.complex128).to("cuda")
 
     print("N is " + str(N))
     print("shape of points is " + str(points.shape))
@@ -185,5 +185,5 @@ def test_t1_forward_cuda(N: int) -> None:
     l_1_error = torch.sum(abs_errors)
 
     assert l_inf_error < 4.5e-5 * N
-    assert l_2_error < 1e-5 * N ** 2
-    assert l_1_error < 1e-5 * N ** 3
+    assert l_2_error < 1e-5 * N**2
+    assert l_1_error < 1e-5 * N**3

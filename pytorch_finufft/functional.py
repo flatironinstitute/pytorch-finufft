@@ -6,8 +6,10 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import finufft
+
 try:
     import cufinufft
+
     CUFINUFFT_AVAIL = True
 except:
     CUFINUFFT_AVAIL = False
@@ -1600,15 +1602,13 @@ class _finufft3D3(torch.autograd.Function):
         )
 
 
-
-
-
 ###############################################################################
 # Consolidated forward function for all 1D, 2D, and 3D problems for nufft type 1
 ###############################################################################
 
+
 def get_nufft_func(dim, nufft_type, device_type):
-    if device_type == 'cuda':
+    if device_type == "cuda":
         return getattr(cufinufft, f"nufft{dim}d{nufft_type}")
     return getattr(finufft, f"nufft{dim}d{nufft_type}")
 
@@ -1616,13 +1616,14 @@ def get_nufft_func(dim, nufft_type, device_type):
 class finufft_type1(torch.autograd.Function):
     @staticmethod
     def forward(
-            ctx: Any,
-            points: torch.Tensor,
-            values: torch.Tensor,
-            output_shape: Union[int, tuple[int, int], tuple[int, int, int]],
-            out: Optional[torch.Tensor]=None,
-            fftshift: bool=False,
-            finufftkwargs: dict[str, Union[int, float]]=None):
+        ctx: Any,
+        points: torch.Tensor,
+        values: torch.Tensor,
+        output_shape: Union[int, tuple[int, int], tuple[int, int, int]],
+        out: Optional[torch.Tensor] = None,
+        fftshift: bool = False,
+        finufftkwargs: dict[str, Union[int, float]] = None,
+    ):
         """
         Evaluates the Type 1 NUFFT on the inputs.
 
@@ -1633,7 +1634,9 @@ class finufft_type1(torch.autograd.Function):
             # All this requires is a check on the out array to make sure it is the
             # correct shape.
 
-        err._type1_checks(points, values, output_shape) # revisit these error checks to take into account the shape of points instead of passing them separately
+        err._type1_checks(
+            points, values, output_shape
+        )  # revisit these error checks to take into account the shape of points instead of passing them separately
         # ^ make sure these checks check for consistency between output shape and len(points)
 
         if finufftkwargs is None:
@@ -1661,24 +1664,28 @@ class finufft_type1(torch.autograd.Function):
         ndim = points.shape[0]
         assert len(output_shape) == ndim
 
+        # if _mode_ordering:
+        #     values = torch.fft.ifftshift(values)
+
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
-        if points.device.type == 'cuda':
+        if points.device.type == "cuda":
             finufft_out = nufft_func(
-                *points, values, output_shape,
-                # modeord=_mode_ordering, # TODO(cuda): modeord not supported?
-                isign=_i_sign, **finufftkwargs
+                *points, values, output_shape, isign=_i_sign, **finufftkwargs
             )
         else:
             finufft_out = torch.from_numpy(
-            nufft_func(
-                *points.data.numpy(),
-                values.data.numpy(),
-                output_shape,
-                modeord=_mode_ordering,
-                isign=_i_sign,
-                **finufftkwargs,
+                nufft_func(
+                    *points.data.numpy(),
+                    values.data.numpy(),
+                    output_shape,
+                    isign=_i_sign,
+                    **finufftkwargs,
+                )
             )
-        )
+
+        # because modeord is missing from cufinufft
+        if _mode_ordering:
+            finufft_out = torch.fft.ifftshift(finufft_out)
 
         return finufft_out
 
@@ -1709,7 +1716,9 @@ class finufft_type1(torch.autograd.Function):
 
         start_points = -(np.array(grad_output.shape) // 2)
         end_points = start_points + grad_output.shape
-        slices = tuple(slice(start, end) for start, end in zip(start_points, end_points))
+        slices = tuple(
+            slice(start, end) for start, end in zip(start_points, end_points)
+        )
 
         # CPU idiosyncracy that needs to be done differently
         coord_ramps = torch.from_numpy(np.mgrid[slices])
@@ -1725,12 +1734,14 @@ class finufft_type1(torch.autograd.Function):
             # wrt points
 
             if _mode_ordering != 0:
-                coord_ramps = torch.fft.ifftshift(coord_ramps, dim=tuple(range(1, ndim+1)))
+                coord_ramps = torch.fft.ifftshift(
+                    coord_ramps, dim=tuple(range(1, ndim + 1))
+                )
 
             ramped_grad_output = coord_ramps * grad_output[np.newaxis] * 1j * _i_sign
 
             grads_points = []
-            for ramp in ramped_grad_output: # we can batch this into finufft
+            for ramp in ramped_grad_output:  # we can batch this into finufft
                 backprop_ramp = torch.from_numpy(
                     nufft_func(
                         *points.numpy(),
@@ -1738,7 +1749,8 @@ class finufft_type1(torch.autograd.Function):
                         isign=_i_sign,
                         modeord=_mode_ordering,
                         **finufftkwargs,
-                    ))
+                    )
+                )
                 grad_points = (backprop_ramp.conj() * values).real
                 grads_points.append(grad_points)
 

@@ -1,11 +1,11 @@
+from functools import partial
+
 import numpy as np
 import pytest
 import torch
 from torch.autograd import gradcheck
 
 import pytorch_finufft
-
-from functools import partial
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 torch.set_default_dtype(torch.float64)

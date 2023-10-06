@@ -1650,6 +1650,7 @@ class finufft_type1(torch.autograd.Function):
             points, values, output_shape
         )  # revisit these error checks to take into account the shape of points instead of passing them separately
         # ^ make sure these checks check for consistency between output shape and len(points)
+        # need device checks
 
         if finufftkwargs is None:
             finufftkwargs = dict()
@@ -1675,9 +1676,6 @@ class finufft_type1(torch.autograd.Function):
         # this below should be a pre-check
         ndim = points.shape[0]
         assert len(output_shape) == ndim
-
-        # if _mode_ordering:
-        #     values = torch.fft.ifftshift(values)
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
         finufft_out = nufft_func(

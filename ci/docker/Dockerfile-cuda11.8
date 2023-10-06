@@ -20,8 +20,7 @@ COPY ci/docker/cuda.repo /etc/yum.repos.d/cuda.repo
 RUN yum install -y \
         cuda-cudart-${CUDA_DASH_VERSION} \
         cuda-compat-${CUDA_DASH_VERSION} && \
-    ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda && \
-    rm -rf /var/cache/yum/*
+    ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda
 
 # nvidia-docker 1.0
 RUN echo "/usr/local/nvidia/lib" >> /etc/ld.so.conf.d/nvidia.conf && \
@@ -38,16 +37,11 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,drive
 # runtime
 RUN yum install -y \
         cuda-libraries-${CUDA_DASH_VERSION} \
-        cuda-nvtx-${CUDA_DASH_VERSION} && \
-    rm -rf /var/cache/yum/*
-
-# devel
-RUN yum install -y \
+        cuda-nvtx-${CUDA_DASH_VERSION} \
         cuda-cudart-devel-${CUDA_DASH_VERSION} \
         cuda-libraries-devel-${CUDA_DASH_VERSION} \
         cuda-nvprof-${CUDA_DASH_VERSION} \
-        cuda-nvcc-${CUDA_DASH_VERSION} && \
-    rm -rf /var/cache/yum/*
+        cuda-nvcc-${CUDA_DASH_VERSION}
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
@@ -56,14 +50,9 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 # CUDA 11 doesn't work on gcc/g++ newer than v9
 RUN yum install -y \
         devtoolset-9-gcc \
-        devtoolset-9-gcc-c++ && \
+        devtoolset-9-gcc-c++ \
+        cmake && \
     rm -rf /var/cache/yum/*
 
 ENV PATH /opt/rh/devtoolset-9/root/usr/bin:${PATH}
 
-# finufft reqs
-RUN yum install -y \
-        cmake && \
-    rm -rf /var/cache/yum/*
-
-RUN

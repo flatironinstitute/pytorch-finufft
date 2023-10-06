@@ -11,7 +11,7 @@ pipeline {
          dockerfile {
             filename 'ci/docker/Dockerfile-cuda11.8'
             args '--gpus 2'
-            label 'v100'
+            label 'docker && gpu'
          }
       }
       environment {

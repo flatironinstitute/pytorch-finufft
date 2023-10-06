@@ -66,15 +66,14 @@ def test_1d_t1_forward_CPU(values: torch.Tensor) -> None:
         torch.linalg.norm(finufft1D1_out - against_scipy) / N**2
     ) == pytest.approx(0, abs=1e-06)
 
-
     abs_errors = torch.abs(finufft1D1_out - against_torch)
     l_inf_error = abs_errors.max()
     l_2_error = torch.sqrt(torch.sum(abs_errors**2))
     l_1_error = torch.sum(abs_errors)
 
-    assert l_inf_error < 3.5e-3 * N ** .6
-    assert l_2_error < 7.5e-4 * N ** 1.1
-    assert l_1_error < 5e-4 * N ** 1.6
+    assert l_inf_error < 3.5e-3 * N**0.6
+    assert l_2_error < 7.5e-4 * N**1.1
+    assert l_1_error < 5e-4 * N**1.6
 
 
 @pytest.mark.parametrize("targets", cases)
@@ -106,17 +105,16 @@ def test_1d_t2_forward_CPU(targets: torch.Tensor):
     )
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_forward_CPU(N: int) -> None:
+def check_t1_forward(N: int, device: str) -> None:
     """
     Tests against implementations of the FFT by setting up a uniform grid
     over which to call FINUFFT through the API.
     """
     g = np.mgrid[:N] * 2 * np.pi / N
     g.shape = 1, -1
-    points = torch.from_numpy(g.reshape(1, -1))
+    points = torch.from_numpy(g.reshape(1, -1)).to(device)
 
-    values = torch.randn(*points[0].shape, dtype=torch.complex128)
+    values = torch.randn(*points[0].shape, dtype=torch.complex128).to(device)
 
     print("N is " + str(N))
     print("shape of points is " + str(points.shape))
@@ -136,9 +134,18 @@ def test_t1_forward_CPU(N: int) -> None:
     l_1_error = torch.sum(abs_errors)
 
     assert l_inf_error < 4.5e-5 * N
-    assert l_2_error < 1e-5 * N ** 2
-    assert l_1_error < 1e-5 * N ** 3
+    assert l_2_error < 1e-5 * N**2
+    assert l_1_error < 1e-5 * N**3
 
+
+@pytest.mark.parametrize("N", Ns)
+def test_t1_forward_CPU(N: int) -> None:
+    check_t1_forward(N, "cpu")
+
+
+@pytest.mark.parametrize("N", Ns)
+def test_t1_forward_cuda(N: int) -> None:
+    check_t1_forward(N, "cuda")
 
 
 # @pytest.mark.parametrize("values", cases)

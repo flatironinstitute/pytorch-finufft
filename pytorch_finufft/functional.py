@@ -5,8 +5,27 @@ Implementations of the corresponding Autograd functions
 from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
-import finufft
 import torch
+
+try:
+    import finufft
+
+    FINUFFT_AVAIL = True
+except ImportError:
+    FINUFFT_AVAIL = False
+
+try:
+    import cufinufft
+
+    CUFINUFFT_AVAIL = True
+except ImportError:
+    CUFINUFFT_AVAIL = False
+
+if not (FINUFFT_AVAIL or CUFINUFFT_AVAIL):
+    raise ImportError(
+        "No FINUFFT implementation available. "
+        "Install either finufft or cufinufft and ensure they are importable."
+    )
 
 import pytorch_finufft._err as err
 
@@ -1595,27 +1614,40 @@ class _finufft3D3(torch.autograd.Function):
         )
 
 
-
-
-
 ###############################################################################
 # Consolidated forward function for all 1D, 2D, and 3D problems for nufft type 1
 ###############################################################################
 
-def get_nufft_func(dim, nufft_type):
-    return getattr(finufft, f"nufft{dim}d{nufft_type}")
+
+def get_nufft_func(dim, nufft_type, device_type):
+    if device_type == "cuda":
+        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")
+
+    # CPU needs extra work to go to/from torch and numpy
+    finufft_func = getattr(finufft, f"nufft{dim}d{nufft_type}")
+
+    def f(*args, **kwargs):
+        new_args = [arg for arg in args]
+        for i in range(len(new_args)):
+            if isinstance(new_args[i], torch.Tensor):
+                new_args[i] = new_args[i].data.numpy()
+
+        return torch.from_numpy(finufft_func(*new_args, **kwargs))
+
+    return f
 
 
 class finufft_type1(torch.autograd.Function):
     @staticmethod
     def forward(
-            ctx: Any,
-            points: torch.Tensor,
-            values: torch.Tensor,
-            output_shape: Union[int, tuple[int, int], tuple[int, int, int]],
-            out: Optional[torch.Tensor]=None,
-            fftshift: bool=False,
-            finufftkwargs: dict[str, Union[int, float]]=None):
+        ctx: Any,
+        points: torch.Tensor,
+        values: torch.Tensor,
+        output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
+        out: Optional[torch.Tensor] = None,
+        fftshift: bool = False,
+        finufftkwargs: dict[str, Union[int, float]] = None,
+    ):
         """
         Evaluates the Type 1 NUFFT on the inputs.
 
@@ -1626,8 +1658,13 @@ class finufft_type1(torch.autograd.Function):
             # All this requires is a check on the out array to make sure it is the
             # correct shape.
 
-        err._type1_checks(points, values, output_shape) # revisit these error checks to take into account the shape of points instead of passing them separately
-        # ^ make sure these checks check for consistency between output shape and len(points)
+        # TODO:
+        # revisit these error checks to take into account the shape of points
+        # instead of passing them separately
+        # make sure these checks check for consistency between output shape and
+        # len(points)
+        # Also need device checks
+        err._type1_checks(points, values, output_shape)
 
         if finufftkwargs is None:
             finufftkwargs = dict()
@@ -1640,7 +1677,8 @@ class finufft_type1(torch.autograd.Function):
             #   to note instead that there is a conflict in fftshift
             if _mode_ordering != 1:
                 raise ValueError(
-                    "Double specification of ordering; only one of fftshift and modeord should be provided"
+                    "Double specification of ordering; only one of fftshift and "
+                    "modeord should be provided"
                 )
             _mode_ordering = 0
 
@@ -1654,38 +1692,34 @@ class finufft_type1(torch.autograd.Function):
         ndim = points.shape[0]
         assert len(output_shape) == ndim
 
-        nufft_func = get_nufft_func(ndim, 1)
-        finufft_out = torch.from_numpy(
-            nufft_func(
-                *points.data.numpy(),
-                values.data.numpy(),
-                output_shape,
-                modeord=_mode_ordering,
-                isign=_i_sign,
-                **finufftkwargs,
-            )
+        nufft_func = get_nufft_func(ndim, 1, points.device.type)
+        finufft_out = nufft_func(
+            *points, values, output_shape, isign=_i_sign, **finufftkwargs
         )
+        # because modeord is missing from cufinufft
+        if _mode_ordering:
+            finufft_out = torch.fft.ifftshift(finufft_out)
 
         return finufft_out
 
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
-        Implements derivatives wrt. each argument in the forward method.
+         Implements derivatives wrt. each argument in the forward method.
 
-        Parameters
-        ----------
-        ctx : Any
-            Pytorch context object.
-        grad_output : torch.Tensor
-            Backpass gradient output
+         Parameters
+         ----------
+         ctx : Any
+             Pytorch context object.
+         grad_output : torch.Tensor
+             Backpass gradient output
 
-        Returns
-        -------
-        tuple[Union[torch.Tensor, None], ...]
-            A tuple of derivatives wrt. each argument in the forward method
+         Returns
+         -------
+        Tuple[Union[torch.Tensor, None], ...]
+             A tuple of derivatives wrt. each argument in the forward method
         """
         _i_sign = -1 * ctx.isign
         _mode_ordering = ctx.mode_ordering
@@ -1695,52 +1729,57 @@ class finufft_type1(torch.autograd.Function):
 
         start_points = -(np.array(grad_output.shape) // 2)
         end_points = start_points + grad_output.shape
-        slices = tuple(slice(start, end) for start, end in zip(start_points, end_points))
+        slices = tuple(
+            slice(start, end) for start, end in zip(start_points, end_points)
+        )
 
         # CPU idiosyncracy that needs to be done differently
-        coord_ramps = torch.from_numpy(np.mgrid[slices])
+        coord_ramps = torch.from_numpy(np.mgrid[slices]).to(points.device)
 
         grads_points = None
         grad_values = None
 
         ndim = points.shape[0]
 
-        nufft_func = get_nufft_func(ndim, 2)
+        nufft_func = get_nufft_func(ndim, 2, points.device.type)
 
         if ctx.needs_input_grad[0]:
             # wrt points
 
-            if _mode_ordering != 0:
-                coord_ramps = torch.fft.ifftshift(coord_ramps, dim=tuple(range(1, ndim+1)))
-            
+            if _mode_ordering:
+                coord_ramps = torch.fft.ifftshift(
+                    coord_ramps, dim=tuple(range(1, ndim + 1))
+                )
+
             ramped_grad_output = coord_ramps * grad_output[np.newaxis] * 1j * _i_sign
 
             grads_points = []
-            for ramp in ramped_grad_output: # we can batch this into finufft
-                backprop_ramp = torch.from_numpy(
-                    nufft_func(
-                        *points.numpy(),
-                        ramp.data.numpy(),
-                        isign=_i_sign,
-                        modeord=_mode_ordering,
-                        **finufftkwargs,
-                    ))
+            for ramp in ramped_grad_output:  # we can batch this into finufft
+                if _mode_ordering:
+                    ramp = torch.fft.fftshift(ramp)
+
+                backprop_ramp = nufft_func(
+                    *points,
+                    ramp,
+                    isign=_i_sign,
+                    **finufftkwargs,
+                )
+
                 grad_points = (backprop_ramp.conj() * values).real
+
                 grads_points.append(grad_points)
-            
+
             grads_points = torch.stack(grads_points)
 
         if ctx.needs_input_grad[1]:
-            np_grad_output = grad_output.data.numpy()
+            if _mode_ordering:
+                grad_output = torch.fft.fftshift(grad_output)
 
-            grad_values = torch.from_numpy(
-                nufft_func(
-                    *points.numpy(),
-                    np_grad_output,
-                    isign=_i_sign,
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
-                )
+            grad_values = nufft_func(
+                *points,
+                grad_output,
+                isign=_i_sign,
+                **finufftkwargs,
             )
 
         return (

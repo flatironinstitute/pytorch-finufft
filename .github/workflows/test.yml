@@ -34,4 +34,4 @@ jobs:
 
     - name: Pytest
       run: |
-        pytest tests/ --cov
+        pytest tests/ --cov -k "not cuda"

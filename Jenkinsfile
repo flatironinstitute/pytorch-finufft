@@ -86,7 +86,7 @@ ${BUILD_LOG,maxLines=200}
          [$class: 'DevelopersRecipientProvider'],
            ],
            replyTo: '$DEFAULT_REPLYTO',
-           to: 'janden@flatironinstitute.org'
+           to: 'bward@flatironinstitute.org'
     }
   }
 }

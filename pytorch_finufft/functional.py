@@ -1610,7 +1610,19 @@ class _finufft3D3(torch.autograd.Function):
 def get_nufft_func(dim, nufft_type, device_type):
     if device_type == "cuda":
         return getattr(cufinufft, f"nufft{dim}d{nufft_type}")
-    return getattr(finufft, f"nufft{dim}d{nufft_type}")
+
+    # CPU needs extra work to go to/from torch and numpy
+    finufft_func = getattr(finufft, f"nufft{dim}d{nufft_type}")
+
+    def f(*args, **kwargs):
+        new_args = [arg for arg in args]
+        for i in range(len(new_args)):
+            if isinstance(new_args[i], torch.Tensor):
+                new_args[i] = new_args[i].data.numpy()
+
+        return torch.from_numpy(finufft_func(*new_args, **kwargs))
+
+    return f
 
 
 class finufft_type1(torch.autograd.Function):
@@ -1668,21 +1680,9 @@ class finufft_type1(torch.autograd.Function):
         #     values = torch.fft.ifftshift(values)
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
-        if points.device.type == "cuda":
-            finufft_out = nufft_func(
-                *points, values, output_shape, isign=_i_sign, **finufftkwargs
-            )
-        else:
-            finufft_out = torch.from_numpy(
-                nufft_func(
-                    *points.data.numpy(),
-                    values.data.numpy(),
-                    output_shape,
-                    isign=_i_sign,
-                    **finufftkwargs,
-                )
-            )
-
+        finufft_out = nufft_func(
+            *points, values, output_shape, isign=_i_sign, **finufftkwargs
+        )
         # because modeord is missing from cufinufft
         if _mode_ordering:
             finufft_out = torch.fft.ifftshift(finufft_out)
@@ -1721,19 +1721,19 @@ class finufft_type1(torch.autograd.Function):
         )
 
         # CPU idiosyncracy that needs to be done differently
-        coord_ramps = torch.from_numpy(np.mgrid[slices])
+        coord_ramps = torch.from_numpy(np.mgrid[slices]).to(points.device)
 
         grads_points = None
         grad_values = None
 
         ndim = points.shape[0]
 
-        nufft_func = get_nufft_func(ndim, 2)
+        nufft_func = get_nufft_func(ndim, 2, points.device.type)
 
         if ctx.needs_input_grad[0]:
             # wrt points
 
-            if _mode_ordering != 0:
+            if _mode_ordering:
                 coord_ramps = torch.fft.ifftshift(
                     coord_ramps, dim=tuple(range(1, ndim + 1))
                 )
@@ -1742,31 +1742,31 @@ class finufft_type1(torch.autograd.Function):
 
             grads_points = []
             for ramp in ramped_grad_output:  # we can batch this into finufft
-                backprop_ramp = torch.from_numpy(
-                    nufft_func(
-                        *points.numpy(),
-                        ramp.data.numpy(),
-                        isign=_i_sign,
-                        modeord=_mode_ordering,
-                        **finufftkwargs,
-                    )
+                if _mode_ordering:
+                    ramp = torch.fft.fftshift(ramp)
+
+                backprop_ramp = nufft_func(
+                    *points,
+                    ramp,
+                    isign=_i_sign,
+                    **finufftkwargs,
                 )
+
                 grad_points = (backprop_ramp.conj() * values).real
+
                 grads_points.append(grad_points)
 
             grads_points = torch.stack(grads_points)
 
         if ctx.needs_input_grad[1]:
-            np_grad_output = grad_output.data.numpy()
+            if _mode_ordering:
+                grad_output = torch.fft.fftshift(grad_output)
 
-            grad_values = torch.from_numpy(
-                nufft_func(
-                    *points.numpy(),
-                    np_grad_output,
-                    isign=_i_sign,
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
-                )
+            grad_values = nufft_func(
+                *points,
+                grad_output,
+                isign=_i_sign,
+                **finufftkwargs,
             )
 
         return (

@@ -4,8 +4,15 @@ Implementations of the corresponding Autograd functions
 
 from typing import Any, Dict, Optional, Tuple, Union
 
-import finufft
 import numpy as np
+import torch
+
+try:
+    import finufft
+
+    FINUFFT_AVAIL = True
+except ImportError:
+    FINUFFT_AVAIL = False
 
 try:
     import cufinufft
@@ -13,7 +20,12 @@ try:
     CUFINUFFT_AVAIL = True
 except ImportError:
     CUFINUFFT_AVAIL = False
-import torch
+
+if not (FINUFFT_AVAIL or CUFINUFFT_AVAIL):
+    raise ImportError(
+        "No FINUFFT implementation available. "
+        "Install either finufft or cufinufft and ensure they are importable."
+    )
 
 import pytorch_finufft._err as err
 
@@ -1631,7 +1643,7 @@ class finufft_type1(torch.autograd.Function):
         ctx: Any,
         points: torch.Tensor,
         values: torch.Tensor,
-        output_shape: Union[int, tuple[int, int], tuple[int, int, int]],
+        output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
         finufftkwargs: dict[str, Union[int, float]] = None,
@@ -1693,21 +1705,21 @@ class finufft_type1(torch.autograd.Function):
     @staticmethod
     def backward(
         ctx: Any, grad_output: torch.Tensor
-    ) -> tuple[Union[torch.Tensor, None], ...]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
-        Implements derivatives wrt. each argument in the forward method.
+         Implements derivatives wrt. each argument in the forward method.
 
-        Parameters
-        ----------
-        ctx : Any
-            Pytorch context object.
-        grad_output : torch.Tensor
-            Backpass gradient output
+         Parameters
+         ----------
+         ctx : Any
+             Pytorch context object.
+         grad_output : torch.Tensor
+             Backpass gradient output
 
-        Returns
-        -------
-        tuple[Union[torch.Tensor, None], ...]
-            A tuple of derivatives wrt. each argument in the forward method
+         Returns
+         -------
+        Tuple[Union[torch.Tensor, None], ...]
+             A tuple of derivatives wrt. each argument in the forward method
         """
         _i_sign = -1 * ctx.isign
         _mode_ordering = ctx.mode_ordering

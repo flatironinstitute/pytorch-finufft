@@ -16,7 +16,7 @@ pipeline {
       }
       environment {
     HOME = "$WORKSPACE"
-    PYBIN = "/opt/python/cp38-cp38/bin"
+    PYBIN = "/opt/python/cp39-cp39/bin"
     LIBRARY_PATH = "$WORKSPACE/finufft/build"
     LD_LIBRARY_PATH = "$WORKSPACE/finufft/build"
       }
@@ -42,6 +42,7 @@ pipeline {
         cuda_arch="70"
 
         cmake -B build . -DFINUFFT_USE_CUDA=ON \
+                         -DFINUFFT_USE_CPU=OFF \
                          -DFINUFFT_BUILD_TESTS=OFF \
                          -DCMAKE_CUDA_ARCHITECTURES="$cuda_arch" \
                          -DBUILD_TESTING=ON
@@ -56,11 +57,10 @@ pipeline {
       # we could also move pytorch install inside docker
       python3 -m pip install "torch~=2.1.0" --index-url https://download.pytorch.org/whl/cu118
       python3 -m pip install finufft/python/cufinufft
-      python3 -m pip install finufft/python/finufft
 
       python3 -m pip install -e .[dev]
 
-      python3 -m pytest -k "cuda" tests/ --cov
+      python3 -m pytest -k "cuda" tests/ --cov -v
     '''
       }
     }

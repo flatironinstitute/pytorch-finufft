@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 import torch
 
 
-def check_devices(*tensors: torch.Tensor) -> str:
+def check_devices(*tensors: torch.Tensor) -> None:
     """
     Checks that all tensors are on the same device
     """

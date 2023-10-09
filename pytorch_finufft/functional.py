@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -692,9 +692,11 @@ class finufft3D2(torch.autograd.Function):
 ###############################################################################
 
 
-def get_nufft_func(dim, nufft_type, device_type):
+def get_nufft_func(
+    dim: int, nufft_type: int, device_type: str
+) -> Callable[..., torch.Tensor]:
     if device_type == "cuda":
-        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")
+        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")  # type: ignore
 
     # CPU needs extra work to go to/from torch and numpy
     finufft_func = getattr(finufft, f"nufft{dim}d{nufft_type}")
@@ -712,15 +714,15 @@ def get_nufft_func(dim, nufft_type, device_type):
 
 class finufft_type1(torch.autograd.Function):
     @staticmethod
-    def forward(
+    def forward(  # type: ignore[override]
         ctx: Any,
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
         out: Optional[torch.Tensor] = None,
         fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = None,
-    ):
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
         """
@@ -754,7 +756,7 @@ class finufft_type1(torch.autograd.Function):
         return finufft_out
 
     @staticmethod
-    def backward(
+    def backward(  # type: ignore[override]
         ctx: Any, grad_output: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, None], ...]:
         """
@@ -804,7 +806,7 @@ class finufft_type1(torch.autograd.Function):
 
             ramped_grad_output = coord_ramps * grad_output[np.newaxis] * 1j * _i_sign
 
-            grads_points = []
+            grads_points_ = []
             for ramp in ramped_grad_output:  # we can batch this into finufft
                 if _mode_ordering:
                     ramp = torch.fft.fftshift(ramp)
@@ -818,9 +820,9 @@ class finufft_type1(torch.autograd.Function):
 
                 grad_points = (backprop_ramp.conj() * values).real
 
-                grads_points.append(grad_points)
+                grads_points_.append(grad_points)
 
-            grads_points = torch.stack(grads_points)
+            grads_points = torch.stack(grads_points_)
 
         if ctx.needs_input_grad[1]:
             if _mode_ordering:

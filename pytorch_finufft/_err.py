@@ -60,7 +60,7 @@ def check_sizes(values: torch.Tensor, points: torch.Tensor) -> None:
         if len(values) != points.shape[1]:
             raise ValueError("The same number of points and values must be supplied")
     else:
-        raise ValueError("The points must be a 1d or 2d array")
+        raise ValueError("The points tensor must be 1d or 2d")
 
 
 def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> None:
@@ -72,9 +72,7 @@ def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> 
             raise ValueError("Got output_shape that was not positive integer")
     else:
         if len(output_shape) != ndim:
-            raise ValueError(
-                f"output_shape must be of length {ndim} for {ndim}d FINUFFT"
-            )
+            raise ValueError(f"output_shape must be of length {ndim} for {ndim}d NUFFT")
         for i in output_shape:
             if i <= 0:
                 raise ValueError("Got output_shape that was not positive integer")
@@ -108,6 +106,7 @@ def validate_finufft_args(
 ### TODO delete the following post-consolidation
 
 _COORD_CHAR_TABLE = "xyz"
+
 
 def _type2_checks(
     points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor

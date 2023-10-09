@@ -58,7 +58,7 @@ pipeline {
       python3 -m pip install "torch~=2.1.0" --index-url https://download.pytorch.org/whl/cu118
       python3 -m pip install finufft/python/cufinufft
 
-      python3 -m pip install -e .[dev]
+      python3 -m pip install -e .[dev,cuda]
 
       python3 -m pytest -k "cuda" tests/ --cov -v
     '''

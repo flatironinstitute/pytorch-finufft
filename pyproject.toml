@@ -30,6 +30,7 @@ homepage = "https://github.com/flatironinstitute/pytorch-finufft"
 
 [project.optional-dependencies]
 dev = ["black", "mypy", "isort", "ruff", "pytest", "pytest-cov"]
+cuda = ["cufinufft>=2.2.0"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pytorch_finufft.__version__" }

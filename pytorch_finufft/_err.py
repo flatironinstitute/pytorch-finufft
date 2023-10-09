@@ -1,101 +1,113 @@
-from typing import Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 
-_COORD_CHAR_TABLE = "xyz"
 
-
-##############################################################################
-# Common error handling/ checking
-##############################################################################
-
-# TODO -- dependencies and build system in the pyproject.toml
-
-
-def _type1_checks(
-    points_tuple: Tuple[torch.Tensor, ...],
-    values: torch.Tensor,
-    output_shape: Union[int, Tuple[int, ...]],
-) -> None:
+def check_devices(*tensors: torch.Tensor) -> str:
     """
-    TODO
-
-    Parameters
-    ----------
-    points_tuple : Tuple[torch.Tensor, ...]
-        Tuples of points inputs, eg, (points,) or (points_x, points_y)
-    values : torch.Tensor
-        Values tensor
-    output_shape : Union[int, Tuple[int, ...]]
-        Output shape either from the in-place array or directly passed
-
-    Raises
-    ------
-    TypeError
-        In the case that values is not complex-valued
-    ValueError
-        In the case that values is not a 1d tensor
-    ValueError
-        In the case that a points_{x,y,z} is not a 1d tensor
-    ValueError
-        In the case that a points_{x,y,z} is not of the same length as values
-    TypeError
-        In the case that a points_{x,y,z} is not real-valued or of the
-        same precision as values
-    ValueError
-        In the case of a malformed output_shape
-    ValueError
-        In the case of a malformed output_shape
+    Checks that all tensors are on the same device
     """
 
-    # Ensure that values is complex
-    if not torch.is_complex(values):
-        raise TypeError("Got values that is not complex-valued")
+    device = tensors[0].device
+    for t in tensors:
+        if t.device.type != "cuda" and t.device.type != "cpu":
+            raise ValueError(
+                f"Finufft only supports cpu and cuda tensors. Got {t.device.type}"
+            )
+        if t.device != device:
+            raise ValueError(
+                f"Some tensors are not on the same device. Got {t.device} and "
+                f"{device}"
+            )
 
-    # Base the dtype and precision checks off of that of values
+
+def check_dtypes(values: torch.Tensor, points: torch.Tensor) -> None:
+    """
+    Checks that values is complex-valued
+    and that points is real-valued of the same precision
+    """
     complex_dtype = values.dtype
-    real_dtype = torch.float32 if complex_dtype is torch.complex64 else torch.float64
+    if complex_dtype is torch.complex128:
+        real_dtype = torch.float64
+    elif complex_dtype is torch.complex64:
+        real_dtype = torch.float32
+    else:
+        raise TypeError(
+            "Values must have a dtype of torch.complex64 or torch.complex128"
+        )
 
-    # Determine if 1, 2, or 3d and figure out if points, points_x, points_y
-    dimension = len(points_tuple)
+    if points.dtype is not real_dtype:
+        raise TypeError(
+            f"Points must have a dtype of {real_dtype} as values has a dtype of "
+            f"{complex_dtype}"
+        )
 
-    # Values must be 1d
+
+def check_sizes(values: torch.Tensor, points: torch.Tensor) -> None:
+    """
+    Checks that values and points are 1d and of the same length.
+    This is used in type1.
+    """
     if len(values.shape) != 1:
         raise ValueError("values must be a 1d array")
 
-    len_values = len(values)
-    for i in range(dimension):
-        coord_char = "" if dimension == 1 else ("_" + _COORD_CHAR_TABLE[i])
+    if len(points.shape) == 1:
+        if len(values) != len(points):
+            raise ValueError("The same number of points and values must be supplied")
+    elif len(points.shape) == 2:
+        if points.shape[0] not in {1, 2, 3}:
+            raise ValueError(f"Points can be at most 3d, got {points.shape} instead")
+        if len(values) != points.shape[1]:
+            raise ValueError("The same number of points and values must be supplied")
+    else:
+        raise ValueError("The points must be a 1d or 2d array")
 
-        # Ensure all points arrays are 1d
-        if len(points_tuple[i].shape) != 1:
-            raise ValueError(f"Got points{coord_char} that is not a 1d tensor")
 
-        if len(points_tuple[i]) != len_values:
-            raise ValueError(
-                f"Got points{coord_char} of a different length than values"
-            )
-
-        # Ensure all points have the same type and correct precision
-        if points_tuple[i].dtype is not real_dtype:
-            raise TypeError(
-                f"Got points{coord_char} that is not {real_dtype} valued; "
-                f"points{coord_char} must also be the same precision as values.",
-            )
-
+def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> None:
+    """
+    Checks that output_shape is either an int or a tuple of ints
+    """
     if isinstance(output_shape, int):
-        if not output_shape > 0:
+        if output_shape <= 0:
             raise ValueError("Got output_shape that was not positive integer")
     else:
-        # In this case, output_shape is a tuple ergo iterable
+        if len(output_shape) != ndim:
+            raise ValueError(
+                f"output_shape must be of length {ndim} for {ndim}d FINUFFT"
+            )
         for i in output_shape:
-            if not i > 0:
+            if i <= 0:
                 raise ValueError("Got output_shape that was not positive integer")
 
-    _device_assertions(values, points_tuple)
 
-    return
+def validate_finufft_args(
+    fftshift: bool, kwargs_in: Optional[Dict[str, Any]]
+) -> Tuple[int, int, Dict[str, Any]]:
+    """
+    Check the arguments for consistency and return isign, modeord,
+    and extra arguments
+    """
+    if kwargs_in is None:
+        kwargs_in = dict()
+    finufftkwargs = {k: v for k, v in kwargs_in.items()}
+    _mode_ordering = finufftkwargs.pop("modeord", 1)
+    _i_sign = finufftkwargs.pop("isign", -1)
 
+    if fftshift:
+        if _mode_ordering != 1:
+            raise ValueError(
+                "Conflict between argument fftshift and FINUFFT keyword "
+                "argument modeord. If fftshift is True, modeord must be 1 "
+                "or unspecified"
+            )
+        _mode_ordering = 0
+
+    return _i_sign, _mode_ordering, finufftkwargs
+
+
+### TODO delete the following post-consolidation
+
+_COORD_CHAR_TABLE = "xyz"
 
 def _type2_checks(
     points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor
@@ -150,49 +162,4 @@ def _type2_checks(
                 f"Got points{coord_char} that is not {real_dtype}-valued; "
                 f"points{coord_char} must also be the same precision as "
                 "targets."
-            )
-
-    _device_assertions(targets, points_tuple)
-
-    return
-
-
-def _type3_checks(
-    points_tuple: Tuple[torch.Tensor, ...],
-    values: torch.Tensor,
-    targets_tuple: Tuple[torch.Tensor, ...],
-) -> None:
-    # raise ValueError("Not yet implemented!")
-
-    # dimension = len(points_tuple)
-
-    pass
-
-
-def _device_assertions(
-    leading: torch.Tensor, tensors: Tuple[torch.Tensor, ...]
-) -> None:
-    """
-    Asserts that all inputs are on the same device by checking against that
-    of leading
-
-    Parameters
-    ----------
-    leading : torch.Tensor
-        The tensor against which the device of each tensor in tensors should
-        be checked against
-    tensors : Tuple[torch.Tensor, ...]
-        The remaining tensors to check
-
-    Raises
-    ------
-    ValueError
-        In the case that one of the tensors in tensors is not on the same
-        device as the leading tensor
-    """
-
-    for t in tensors:
-        if not t.device == leading.device:
-            raise ValueError(
-                "Ensure that all tensors passed to FINUFFT are on the same " "device"
             )

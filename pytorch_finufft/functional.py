@@ -723,54 +723,32 @@ class finufft_type1(torch.autograd.Function):
     ):
         """
         Evaluates the Type 1 NUFFT on the inputs.
-
         """
 
         if out is not None:
-            print("In-place results are not yet implemented")
             # All this requires is a check on the out array to make sure it is the
             # correct shape.
+            raise NotImplementedError("In-place results are not yet implemented")
 
-        # TODO:
-        # revisit these error checks to take into account the shape of points
-        # instead of passing them separately
-        # make sure these checks check for consistency between output shape and
-        # len(points)
-        # Also need device checks
-        err._type1_checks(points, values, output_shape)
-
-        if finufftkwargs is None:
-            finufftkwargs = dict()
-        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
-        _mode_ordering = finufftkwargs.pop("modeord", 1)
-        _i_sign = finufftkwargs.pop("isign", -1)
-
-        if fftshift:
-            # TODO -- this check should be done elsewhere? or error msg changed
-            #   to note instead that there is a conflict in fftshift
-            if _mode_ordering != 1:
-                raise ValueError(
-                    "Double specification of ordering; only one of fftshift and "
-                    "modeord should be provided"
-                )
-            _mode_ordering = 0
-
-        ctx.save_for_backward(points, values)
-
-        ctx.isign = _i_sign
-        ctx.mode_ordering = _mode_ordering
-        ctx.finufftkwargs = finufftkwargs
-
-        # this below should be a pre-check
+        err.check_devices(values, points)
+        err.check_dtypes(values, points)
+        err.check_sizes(values, points)
+        points = torch.atleast_2d(points)
         ndim = points.shape[0]
-        assert len(output_shape) == ndim
+        err.check_output_shape(ndim, output_shape)
+
+        ctx.isign, ctx.mode_ordering, ctx.finufftkwargs = err.validate_finufft_args(
+            fftshift, finufftkwargs
+        )
+        ctx.save_for_backward(points, values)
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
         finufft_out = nufft_func(
-            *points, values, output_shape, isign=_i_sign, **finufftkwargs
+            *points, values, output_shape, isign=ctx.isign, **ctx.finufftkwargs
         )
+
         # because modeord is missing from cufinufft
-        if _mode_ordering:
+        if ctx.mode_ordering:
             finufft_out = torch.fft.ifftshift(finufft_out)
 
         return finufft_out

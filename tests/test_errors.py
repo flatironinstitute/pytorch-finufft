@@ -5,6 +5,7 @@ import torch
 
 import pytorch_finufft
 
+torch.manual_seed(0)
 # devices
 
 

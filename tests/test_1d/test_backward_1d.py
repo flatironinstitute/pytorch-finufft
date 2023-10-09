@@ -47,7 +47,7 @@ def check_t1_backward(
             points, values, (N + modifier,), None, fftshift, dict(isign=isign)
         )
 
-    assert gradcheck(func, inputs, atol=1e-5 * N)
+    assert gradcheck(func, inputs, eps=1e-8, atol=1e-5 * N)
 
 
 @pytest.mark.parametrize("N", Ns)

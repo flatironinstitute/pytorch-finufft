@@ -720,7 +720,6 @@ class finufft_type1(torch.autograd.Function):
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
         out: Optional[torch.Tensor] = None,
-        fftshift: bool = False,
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
     ) -> torch.Tensor:
         """
@@ -739,10 +738,17 @@ class finufft_type1(torch.autograd.Function):
         ndim = points.shape[0]
         err.check_output_shape(ndim, output_shape)
 
-        ctx.isign, ctx.mode_ordering, ctx.finufftkwargs = err.validate_finufft_args(
-            fftshift, finufftkwargs
-        )
         ctx.save_for_backward(points, values)
+
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = {k: v for k, v in finufftkwargs.items()}
+        ctx.isign = finufftkwargs.pop("isign", -1)  # note: FINUFFT default is 1
+        ctx.mode_ordering = finufftkwargs.pop(
+            "modeord", 1
+        )  # note: FINUFFT default is 0
+        ctx.finufftkwargs = finufftkwargs
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
         finufft_out = nufft_func(

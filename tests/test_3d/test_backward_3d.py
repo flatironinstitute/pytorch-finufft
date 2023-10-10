@@ -78,8 +78,7 @@ def check_t1_backward(
             values,
             (N, N + modifier, N + 2 * modifier),
             None,
-            fftshift,
-            dict(isign=isign),
+            dict(modeord=int(not fftshift), isign=isign),
         )
 
     assert gradcheck(func, inputs, atol=1e-5 * N)

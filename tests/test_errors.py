@@ -145,16 +145,3 @@ def test_t1_negative_output_dims() -> None:
         ValueError, match="Got output_shape that was not positive integer"
     ):
         pytorch_finufft.functional.finufft_type1.apply(points, values, (10, -2))
-
-
-def test_t1_bad_fftshift_modeord() -> None:
-    points = torch.rand((2, 10), dtype=torch.float64)
-    values = torch.randn(10, dtype=torch.complex128)
-
-    with pytest.raises(
-        ValueError,
-        match="Conflict between argument fftshift and FINUFFT keyword argument modeord",
-    ):
-        pytorch_finufft.functional.finufft_type1.apply(
-            points, values, (10, 10), None, True, dict(modeord=1)
-        )

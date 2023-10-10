@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Tuple, Union
 
 import torch
 
@@ -76,30 +76,6 @@ def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> 
         for i in output_shape:
             if i <= 0:
                 raise ValueError("Got output_shape that was not positive integer")
-
-
-def validate_finufft_args(
-    fftshift: bool, kwargs_in: Optional[Dict[str, Any]]
-) -> Tuple[int, int, Dict[str, Any]]:
-    """
-    Check the arguments for consistency and return isign, modeord,
-    and extra arguments
-    """
-    if kwargs_in is None:
-        kwargs_in = dict()
-    finufftkwargs = {k: v for k, v in kwargs_in.items()}
-    _mode_ordering = finufftkwargs.pop(
-        "modeord", int(not fftshift)
-    )
-    _i_sign = finufftkwargs.pop("isign", -1)  # note: FINUFFT default is 1
-
-    if (not fftshift) != _mode_ordering:
-        raise ValueError(
-            "Conflict between argument fftshift and FINUFFT keyword "
-            "argument modeord."
-        )
-
-    return _i_sign, _mode_ordering, finufftkwargs
 
 
 ### TODO delete the following post-consolidation

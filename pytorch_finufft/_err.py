@@ -88,17 +88,16 @@ def validate_finufft_args(
     if kwargs_in is None:
         kwargs_in = dict()
     finufftkwargs = {k: v for k, v in kwargs_in.items()}
-    _mode_ordering = finufftkwargs.pop("modeord", 1)
-    _i_sign = finufftkwargs.pop("isign", -1)
+    _mode_ordering = finufftkwargs.pop(
+        "modeord", int(not fftshift)
+    )
+    _i_sign = finufftkwargs.pop("isign", -1)  # note: FINUFFT default is 1
 
-    if fftshift:
-        if _mode_ordering != 1:
-            raise ValueError(
-                "Conflict between argument fftshift and FINUFFT keyword "
-                "argument modeord. If fftshift is True, modeord must be 1 "
-                "or unspecified"
-            )
-        _mode_ordering = 0
+    if (not fftshift) != _mode_ordering:
+        raise ValueError(
+            "Conflict between argument fftshift and FINUFFT keyword "
+            "argument modeord."
+        )
 
     return _i_sign, _mode_ordering, finufftkwargs
 

@@ -156,5 +156,5 @@ def test_t1_bad_fftshift_modeord() -> None:
         match="Conflict between argument fftshift and FINUFFT keyword argument modeord",
     ):
         pytorch_finufft.functional.finufft_type1.apply(
-            points, values, (10, 10), None, True, dict(modeord=0)
+            points, values, (10, 10), None, True, dict(modeord=1)
         )

@@ -68,6 +68,10 @@ def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> 
     Checks that output_shape is either an int or a tuple of ints
     """
     if isinstance(output_shape, int):
+        if ndim != 1:
+            raise ValueError(
+                f"output_shape must be a tuple of length {ndim} for {ndim}d NUFFT"
+            )
         if output_shape <= 0:
             raise ValueError("Got output_shape that was not positive integer")
     else:

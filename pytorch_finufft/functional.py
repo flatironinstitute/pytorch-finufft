@@ -916,8 +916,9 @@ class finufft_type2(torch.autograd.Function):
                 )
             _mode_ordering = 0
 
+        ndim = points.shape[0]
         if _mode_ordering == 1:
-            targets = torch.fft.fftshift(targets, dim=(-2, -1))
+            targets = torch.fft.fftshift(targets, dim=tuple(range(-ndim, 0)))
 
 
         ctx.isign = _i_sign
@@ -927,15 +928,16 @@ class finufft_type2(torch.autograd.Function):
 
         ctx.save_for_backward(points, targets)
 
-        finufft_out = finufft.nufft2d2(
+        nufft_func = get_nufft_func(ndim, 2, points.device.type)
+
+        finufft_out = nufft_func(
             *points.data.numpy(),
             targets.data.numpy(),
-            #modeord=_mode_ordering,
             isign=_i_sign,
             **finufftkwargs,
         )
 
-        return torch.from_numpy(finufft_out)
+        return finufft_out
 
     @staticmethod
     def backward(

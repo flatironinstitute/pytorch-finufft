@@ -158,3 +158,14 @@ def test_t1_negative_output_dims() -> None:
         ValueError, match="Got output_shape that was not positive integer"
     ):
         pytorch_finufft.functional.finufft_type1.apply(points, values, (10, -2))
+
+# dependencies
+def test_cuda_finufft_not_installed():
+    pytest.importorskip("finufft")
+
+    points = torch.rand(10, dtype=torch.float64).to('cpu')
+    values = torch.randn(10, dtype=torch.complex128).to('cpu')
+
+    with pytest.raises(RuntimeError, match="cufinufft failed to import"):
+        pytorch_finufft.functional.finufft_type1.apply(points, values, 10)
+

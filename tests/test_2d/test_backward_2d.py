@@ -55,7 +55,11 @@ def check_t1_backward(
 
     def func(points, values):
         return pytorch_finufft.functional.finufft_type1.apply(
-            points, values, (N, N + modifier), None, fftshift, dict(isign=isign)
+            points,
+            values,
+            (N, N + modifier),
+            None,
+            dict(modeord=int(not fftshift), isign=isign),
         )
 
     assert gradcheck(func, inputs, atol=1e-5 * N)

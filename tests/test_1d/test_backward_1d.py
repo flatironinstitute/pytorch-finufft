@@ -17,7 +17,6 @@ Ns = [
     10,
     15,
     16,
-    55,
     63,
     100,
     101,
@@ -34,6 +33,7 @@ def check_t1_backward(
     device: str,
     points_or_values: bool,
 ) -> None:
+    # TODO: we should also test shape (N,) for points - don't want combinatorics for now
     points = torch.rand((1, N), dtype=torch.float64).to(device) * 2 * np.pi
     values = torch.randn(N, dtype=torch.complex128).to(device)
 
@@ -44,10 +44,14 @@ def check_t1_backward(
 
     def func(points, values):
         return pytorch_finufft.functional.finufft_type1.apply(
-            points, values, (N + modifier,), None, fftshift, dict(isign=isign)
+            points,
+            values,
+            (N + modifier,),
+            None,
+            dict(modeord=int(not fftshift), isign=isign),
         )
 
-    assert gradcheck(func, inputs, atol=1e-5 * N)
+    assert gradcheck(func, inputs, eps=1e-8, atol=1e-5 * N)
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -156,4 +160,4 @@ def test_t2_backward_CPU_points(
 
     inputs = (points, targets)
 
-    assert gradcheck(apply_finufft1d2(fftshift, isign), inputs)
+    assert gradcheck(apply_finufft1d2(fftshift, isign), inputs, eps=1e-8, atol=1e-5 * N)

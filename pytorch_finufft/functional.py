@@ -2,7 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -27,7 +27,7 @@ if not (FINUFFT_AVAIL or CUFINUFFT_AVAIL):
         "Install either finufft or cufinufft and ensure they are importable."
     )
 
-import pytorch_finufft._err as err
+import pytorch_finufft.checks as checks
 
 ###############################################################################
 # 1d Functions
@@ -93,7 +93,7 @@ class finufft1D2(torch.autograd.Function):
         if out is not None:
             print("In-place results are not yet implemented")
 
-        err._type2_checks((points,), targets)
+        checks._type2_checks((points,), targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
@@ -269,7 +269,7 @@ class finufft2D2(torch.autograd.Function):
             print("In-place results are not yet implemented")
 
         # TODO -- extend checks to 2d
-        err._type2_checks((points_x, points_y), targets)
+        checks._type2_checks((points_x, points_y), targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
@@ -502,7 +502,7 @@ class finufft3D2(torch.autograd.Function):
         if out is not None:
             print("In-place results are not yet implemented")
 
-        err._type2_checks((points_x, points_y, points_z), targets)
+        checks._type2_checks((points_x, points_y, points_z), targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
@@ -692,9 +692,11 @@ class finufft3D2(torch.autograd.Function):
 ###############################################################################
 
 
-def get_nufft_func(dim, nufft_type, device_type):
+def get_nufft_func(
+    dim: int, nufft_type: int, device_type: str
+) -> Callable[..., torch.Tensor]:
     if device_type == "cuda":
-        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")
+        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")  # type: ignore
 
     # CPU needs extra work to go to/from torch and numpy
     finufft_func = getattr(finufft, f"nufft{dim}d{nufft_type}")
@@ -712,65 +714,49 @@ def get_nufft_func(dim, nufft_type, device_type):
 
 class finufft_type1(torch.autograd.Function):
     @staticmethod
-    def forward(
+    def forward(  # type: ignore[override]
         ctx: Any,
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
         out: Optional[torch.Tensor] = None,
-        fftshift: bool = False,
-        finufftkwargs: dict[str, Union[int, float]] = None,
-    ):
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
-
         """
 
         if out is not None:
-            print("In-place results are not yet implemented")
             # All this requires is a check on the out array to make sure it is the
             # correct shape.
+            raise NotImplementedError("In-place results are not yet implemented")
 
-        # TODO:
-        # revisit these error checks to take into account the shape of points
-        # instead of passing them separately
-        # make sure these checks check for consistency between output shape and
-        # len(points)
-        # Also need device checks
-        err._type1_checks(points, values, output_shape)
-
-        if finufftkwargs is None:
-            finufftkwargs = dict()
-        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
-        _mode_ordering = finufftkwargs.pop("modeord", 1)
-        _i_sign = finufftkwargs.pop("isign", -1)
-
-        if fftshift:
-            # TODO -- this check should be done elsewhere? or error msg changed
-            #   to note instead that there is a conflict in fftshift
-            if _mode_ordering != 1:
-                raise ValueError(
-                    "Double specification of ordering; only one of fftshift and "
-                    "modeord should be provided"
-                )
-            _mode_ordering = 0
+        checks.check_devices(values, points)
+        checks.check_dtypes(values, points)
+        checks.check_sizes(values, points)
+        points = torch.atleast_2d(points)
+        ndim = points.shape[0]
+        checks.check_output_shape(ndim, output_shape)
 
         ctx.save_for_backward(points, values)
 
-        ctx.isign = _i_sign
-        ctx.mode_ordering = _mode_ordering
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = {k: v for k, v in finufftkwargs.items()}
+        ctx.isign = finufftkwargs.pop("isign", -1)  # note: FINUFFT default is 1
+        ctx.mode_ordering = finufftkwargs.pop(
+            "modeord", 1
+        )  # note: FINUFFT default is 0
         ctx.finufftkwargs = finufftkwargs
-
-        # this below should be a pre-check
-        ndim = points.shape[0]
-        assert len(output_shape) == ndim
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
         finufft_out = nufft_func(
-            *points, values, output_shape, isign=_i_sign, **finufftkwargs
+            *points, values, output_shape, isign=ctx.isign, **ctx.finufftkwargs
         )
+
         # because modeord is missing from cufinufft
-        if _mode_ordering:
+        if ctx.mode_ordering:
             finufft_out = torch.fft.ifftshift(finufft_out)
 
         return finufft_out

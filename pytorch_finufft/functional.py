@@ -27,7 +27,7 @@ if not (FINUFFT_AVAIL or CUFINUFFT_AVAIL):
         "Install either finufft or cufinufft and ensure they are importable."
     )
 
-import pytorch_finufft._err as err
+import pytorch_finufft.checks as checks
 
 ###############################################################################
 # 1d Functions
@@ -93,7 +93,7 @@ class finufft1D2(torch.autograd.Function):
         if out is not None:
             print("In-place results are not yet implemented")
 
-        err._type2_checks((points,), targets)
+        checks._type2_checks((points,), targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
@@ -269,7 +269,7 @@ class finufft2D2(torch.autograd.Function):
             print("In-place results are not yet implemented")
 
         # TODO -- extend checks to 2d
-        err._type2_checks((points_x, points_y), targets)
+        checks._type2_checks((points_x, points_y), targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
@@ -502,7 +502,7 @@ class finufft3D2(torch.autograd.Function):
         if out is not None:
             print("In-place results are not yet implemented")
 
-        err._type2_checks((points_x, points_y, points_z), targets)
+        checks._type2_checks((points_x, points_y, points_z), targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)
@@ -731,12 +731,12 @@ class finufft_type1(torch.autograd.Function):
             # correct shape.
             raise NotImplementedError("In-place results are not yet implemented")
 
-        err.check_devices(values, points)
-        err.check_dtypes(values, points)
-        err.check_sizes(values, points)
+        checks.check_devices(values, points)
+        checks.check_dtypes(values, points)
+        checks.check_sizes(values, points)
         points = torch.atleast_2d(points)
         ndim = points.shape[0]
-        err.check_output_shape(ndim, output_shape)
+        checks.check_output_shape(ndim, output_shape)
 
         ctx.save_for_backward(points, values)
 

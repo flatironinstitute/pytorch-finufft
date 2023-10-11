@@ -9,7 +9,7 @@ torch.manual_seed(0)
 # devices
 
 
-def test_t1_mismatch_cuda_non_cuda() -> None:
+def test_t1_mismatch_multi_cuda() -> None:
     points = torch.rand((2, 10), dtype=torch.float64)
     values = torch.randn(10, dtype=torch.complex128).to("cuda:0")
 
@@ -97,14 +97,14 @@ def test_t1_wrong_length() -> None:
     with pytest.raises(
         ValueError, match="The same number of points and values must be supplied"
     ):
-        pytorch_finufft.functional.finufft_type1.apply(points, values, (10, 10))
+        pytorch_finufft.functional.finufft_type1.apply(points, values, (10,))
 
     points = torch.rand((3, 10), dtype=torch.float64)
 
     with pytest.raises(
         ValueError, match="The same number of points and values must be supplied"
     ):
-        pytorch_finufft.functional.finufft_type1.apply(points, values, (10, 10))
+        pytorch_finufft.functional.finufft_type1.apply(points, values, (10,))
 
 
 def test_t1_points_4d() -> None:
@@ -132,6 +132,10 @@ def test_t1_wrong_output_dims() -> None:
     ):
         pytorch_finufft.functional.finufft_type1.apply(points, values, (10, 10, 10))
 
+    with pytest.raises(
+        ValueError, match="output_shape must be of length 2 for 2d NUFFT"
+    ):
+        pytorch_finufft.functional.finufft_type1.apply(points, values, (10,))
 
 def test_t1_negative_output_dims() -> None:
     points = torch.rand((2, 10), dtype=torch.float64)

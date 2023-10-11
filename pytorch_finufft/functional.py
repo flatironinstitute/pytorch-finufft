@@ -902,7 +902,7 @@ class finufft_type2(torch.autograd.Function):
             print("In-place results are not yet implemented")
 
         # TODO -- extend checks to 2d
-        err._type2_checks(points, targets)
+        checks._type2_checks(points, targets)
 
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop("modeord", 1)

@@ -9,7 +9,7 @@ torch.manual_seed(0)
 # devices
 
 
-def test_t1_mismatch_multi_cuda() -> None:
+def test_t1_mismatch_device_cuda_cpu() -> None:
     points = torch.rand((2, 10), dtype=torch.float64)
     values = torch.randn(10, dtype=torch.complex128).to("cuda:0")
 
@@ -17,6 +17,7 @@ def test_t1_mismatch_multi_cuda() -> None:
         pytorch_finufft.functional.finufft_type1.apply(points, values, (10, 10))
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="require multiple GPUs")
 def test_t1_mismatch_cuda_index() -> None:
     points = torch.rand((2, 10), dtype=torch.float64).to("cuda:0")
     values = torch.randn(10, dtype=torch.complex128).to("cuda:1")

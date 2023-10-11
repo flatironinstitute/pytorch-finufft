@@ -60,7 +60,7 @@ pipeline {
 
       python3 -m pip install -e .[dev] # can make [dev,cuda] once cufinufft released?
 
-      python3 -m pytest -k "cuda" tests/ --cov -v
+      python3 -m pytest -k "cuda" tests/ --cov -v --error-for-skips
     '''
       }
     }

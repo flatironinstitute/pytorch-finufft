@@ -970,57 +970,65 @@ class finufft_type2(torch.autograd.Function):
         finufftkwargs = ctx.finufftkwargs
 
         points, targets = ctx.saved_tensors
+        device = points.device
 
-        start_points = -(np.array(targets.shape) // 2)
-        end_points = start_points + targets.shape
-        slices = tuple(slice(start, end) for start, end in zip(start_points, end_points))
+        # start_points = -(np.array(targets.shape) // 2)
+        # end_points = start_points + targets.shape
+        # slices = tuple(slice(start, end) for start, end in zip(start_points, end_points))
 
-        # CPU idiosyncracy that needs to be done differently
-        k_ramps = torch.from_numpy(np.mgrid[slices], dtype=points.dtype)
+        # # CPU idiosyncracy that needs to be done differently
+        # k_ramps = torch.from_numpy(np.mgrid[slices], dtype=points.dtype)
 
-        grad_points_x = grad_points_y = grad_targets = None
+        grad_points = grad_targets = None
+
+        ## From type 1, commenting for now to understand whether needed
+        # if any(ctx.needs_input_grad) and _mode_ordering:
+        #     grad_output = torch.fft.fftshift(grad_output)
 
         if ctx.needs_input_grad[0]:
-            # wrt. points_x
-            if _mode_ordering != 0:
-                k_ramps = torch.fft.ifftshift(k_ramps, dim=tuple(range(1, len(k_ramps.shape))))
-
-            # TODO analytically work out if we can simplify this *1j,
-            # the below conj, and below *values
-            ramped_targets = k_ramps * targets[np.newaxis] * 1j * _i_sign
-
-            np_points = points.data.numpy()
-            np_ramped_targets = ramped_targets.data.numpy()
-
-            grad_points = torch.from_numpy(
-                finufft.nufft2d2(
-                    *np_points,
-                    np_ramped_targets,
-                    isign=_i_sign,
-                    modeord=_mode_ordering,
-                    **finufftkwargs,
+            # wrt points
+            start_points = -(torch.tensor(targets.shape, device=device) // 2)
+            end_points = start_points + torch.tensor(targets.shape, device=device)
+            coord_ramps = torch.stack(
+                torch.meshgrid(
+                    *(
+                        torch.arange(start, end, device=device)
+                        for start, end in zip(start_points, end_points)
+                    ),
+                    indexing="ij",
                 )
-            ).conj().to(targets.dtype)
+            )
+
+        ndim = points.shape[0]
+
+        if ctx.needs_input_grad[0]:
+            ramped_targets = coord_ramps * targets[np.newaxis] * 1j * _i_sign
+            nufft_func = get_nufft_func(ndim, 2, points.device.type)
+
+            grad_points = nufft_func(
+                    *points,
+                    ramped_targets,
+                    isign=_i_sign,
+                    #modeord=_mode_ordering,
+                    **finufftkwargs,
+                ).conj()  # Currently don't really get why this is hard to replace with a flipped isign
 
             grad_points = grad_points * grad_output
             grad_points = grad_points.real
 
         if ctx.needs_input_grad[1]:
             # wrt. targets
+            nufft_func = get_nufft_func(ndim, 1, points.device.type)
 
-            np_points = points.data.numpy()
-            np_grad_output = grad_output.data.numpy()
-
-            grad_targets = torch.from_numpy(
-                finufft.nufft2d1(
-                    *np_points,
-                    np_grad_output,
-                    len(targets),
-                    modeord=_mode_ordering,
+            grad_targets = nufft_func(
+                    *points,
+                    grad_output,
+                    targets.shape,
+                    #modeord=_mode_ordering,
                     isign=-_i_sign,
                     **finufftkwargs,
                 )
-            )
+            
 
         return (
             grad_points,

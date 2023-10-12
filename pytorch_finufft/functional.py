@@ -850,7 +850,6 @@ class finufft_type2(torch.autograd.Function):
         points: torch.Tensor,
         targets: torch.Tensor,
         out: Optional[torch.Tensor] = None,
-        fftshift: bool = False,
         finufftkwargs: Dict[str, Union[int, float]] = {},
     ) -> torch.Tensor:
         """
@@ -908,13 +907,13 @@ class finufft_type2(torch.autograd.Function):
         _mode_ordering = finufftkwargs.pop("modeord", 1)
         _i_sign = finufftkwargs.pop("isign", -1)
 
-        if fftshift:
-            if _mode_ordering != 1:  # This seems like it is the wrong way round???????
-                raise ValueError(
-                    "Double specification of ordering; only one of fftshift and "
-                    "modeord should be provided."
-                )
-            _mode_ordering = 0
+        # if fftshift:
+        #     if _mode_ordering != 1:  # This seems like it is the wrong way round???????
+        #         raise ValueError(
+        #             "Double specification of ordering; only one of fftshift and "
+        #             "modeord should be provided."
+        #         )
+        #     _mode_ordering = 0
 
         ndim = points.shape[0]
         if _mode_ordering == 1:
@@ -923,7 +922,6 @@ class finufft_type2(torch.autograd.Function):
 
         ctx.isign = _i_sign
         ctx.mode_ordering = _mode_ordering
-        ctx.fftshift = fftshift
         ctx.finufftkwargs = finufftkwargs
 
         ctx.save_for_backward(points, targets)
@@ -980,10 +978,8 @@ class finufft_type2(torch.autograd.Function):
         # k_ramps = torch.from_numpy(np.mgrid[slices], dtype=points.dtype)
 
         grad_points = grad_targets = None
+        ndim = points.shape[0]
 
-        ## From type 1, commenting for now to understand whether needed
-        # if any(ctx.needs_input_grad) and _mode_ordering:
-        #     grad_output = torch.fft.fftshift(grad_output)
 
         if ctx.needs_input_grad[0]:
             # wrt points
@@ -998,8 +994,6 @@ class finufft_type2(torch.autograd.Function):
                     indexing="ij",
                 )
             )
-
-        ndim = points.shape[0]
 
         if ctx.needs_input_grad[0]:
             ramped_targets = coord_ramps * targets[np.newaxis] * 1j * _i_sign
@@ -1029,6 +1023,8 @@ class finufft_type2(torch.autograd.Function):
                     **finufftkwargs,
                 )
             
+            if _mode_ordering == 1:
+                grad_targets = torch.fft.ifftshift(grad_targets, dim=tuple(range(-ndim, 0)))
 
         return (
             grad_points,

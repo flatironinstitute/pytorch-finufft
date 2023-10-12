@@ -1001,14 +1001,14 @@ class finufft_type2(torch.autograd.Function):
 
             grad_points = nufft_func(
                     *points,
-                    ramped_targets,
+                    ramped_targets.squeeze(),
                     isign=_i_sign,
                     #modeord=_mode_ordering,
                     **finufftkwargs,
                 ).conj()  # Currently don't really get why this is hard to replace with a flipped isign
 
             grad_points = grad_points * grad_output
-            grad_points = grad_points.real
+            grad_points = torch.atleast_2d(grad_points.real)
 
         if ctx.needs_input_grad[1]:
             # wrt. targets

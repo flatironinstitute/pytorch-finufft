@@ -696,8 +696,12 @@ def get_nufft_func(
     dim: int, nufft_type: int, device_type: str
 ) -> Callable[..., torch.Tensor]:
     if device_type == "cuda":
+        if not CUFINUFFT_AVAIL:
+            raise RuntimeError("CUDA device requested but cufinufft failed to import")
         return getattr(cufinufft, f"nufft{dim}d{nufft_type}")  # type: ignore
 
+    if not FINUFFT_AVAIL:
+        raise RuntimeError("CPU device requested but finufft failed to import")
     # CPU needs extra work to go to/from torch and numpy
     finufft_func = getattr(finufft, f"nufft{dim}d{nufft_type}")
 

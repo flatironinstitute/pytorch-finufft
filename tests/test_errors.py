@@ -159,13 +159,21 @@ def test_t1_negative_output_dims() -> None:
     ):
         pytorch_finufft.functional.finufft_type1.apply(points, values, (10, -2))
 
+
 # dependencies
-def test_cuda_finufft_not_installed():
-    pytest.importorskip("finufft")
+def test_finufft_not_installed():
+    if not pytorch_finufft.functional.CUFINUFFT_AVAIL:
+        if not torch.cuda.is_available():
+            pytest.skip("CUDA unavailable")
+        points = torch.rand(10, dtype=torch.float64).to("cuda")
+        values = torch.randn(10, dtype=torch.complex128).to("cuda")
 
-    points = torch.rand(10, dtype=torch.float64).to('cpu')
-    values = torch.randn(10, dtype=torch.complex128).to('cpu')
+        with pytest.raises(RuntimeError, match="cufinufft failed to import"):
+            pytorch_finufft.functional.finufft_type1.apply(points, values, 10)
 
-    with pytest.raises(RuntimeError, match="cufinufft failed to import"):
-        pytorch_finufft.functional.finufft_type1.apply(points, values, 10)
+    elif not pytorch_finufft.functional.FINUFFT_AVAIL:
+        points = torch.rand(10, dtype=torch.float64).to("cpu")
+        values = torch.randn(10, dtype=torch.complex128).to("cpu")
 
+        with pytest.raises(RuntimeError, match="finufft failed to import"):
+            pytorch_finufft.functional.finufft_type1.apply(points, values, 10)

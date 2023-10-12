@@ -114,7 +114,8 @@ def test_2d_t2_forward_CPU(N: int) -> None:
 
 
 @pytest.mark.parametrize("N", Ns)
-def test_t2_forward_CPU(N: int) -> None:
+@pytest.mark.parametrize("fftshift", [False, True])
+def test_t2_forward_CPU(N: int, fftshift: bool) -> None:
     """
     Tests against implementations of the FFT by setting up a uniform grid
     over which to call FINUFFT through the API.
@@ -131,9 +132,14 @@ def test_t2_forward_CPU(N: int) -> None:
     finufft_out = pytorch_finufft.functional.finufft_type2.apply(
         points,
         targets,
+        None,
+        {'modeord': int(not fftshift)},
     )
 
-    against_torch = torch.fft.fft2(targets)
+    if fftshift:
+        against_torch = torch.fft.fft2(torch.fft.ifftshift(targets))
+    else:
+        against_torch = torch.fft.fft2(targets)
 
     abs_errors = torch.abs(finufft_out - against_torch.ravel())
     l_inf_error = abs_errors.max()

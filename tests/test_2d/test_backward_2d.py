@@ -250,3 +250,21 @@ def test_t2_backward_CPU_points(
 ) -> None:
     check_t2_backward(N, modifier, fftshift, isign, "cpu", True)
 
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_values(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    check_t2_backward(N, modifier, fftshift, isign, "cuda", False)
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_points(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    check_t2_backward(N, modifier, fftshift, isign, "cuda", True)
+

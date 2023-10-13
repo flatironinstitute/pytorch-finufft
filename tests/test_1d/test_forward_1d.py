@@ -74,35 +74,6 @@ for n in Ns:
     )
 
 
-@pytest.mark.parametrize("targets", cases)
-def test_1d_t2_forward_CPU(targets: torch.Tensor):
-    """
-    Test type 2 API against existing implementations by setting
-    """
-    N = len(targets)
-    inv_targets = torch.fft.fft(targets)
-    assert len(inv_targets) == N
-
-    against_torch = torch.fft.ifft(inv_targets)
-
-    data_type = torch.float64 if targets.dtype is torch.complex128 else torch.float32
-
-    finufft_out = (
-        pytorch_finufft.functional.finufft1D2.apply(
-            2 * np.pi * torch.arange(0, 1, 1 / N, dtype=data_type),
-            inv_targets,
-        )
-        / N
-    )
-
-    assert torch.norm(finufft_out - np.array(targets)) / N**2 == pytest.approx(
-        0, abs=1e-05
-    )
-    assert torch.norm(finufft_out - against_torch) / N**2 == pytest.approx(
-        0, abs=1e-05
-    )
-
-
 @pytest.mark.parametrize("N", Ns)
 def test_t2_forward_CPU(N: int) -> None:
     """
@@ -130,7 +101,6 @@ def test_t2_forward_CPU(N: int) -> None:
     l_2_error = torch.sqrt(torch.sum(abs_errors**2))
     l_1_error = torch.sum(abs_errors)
 
-    assert l_inf_error < 4.5e-5 * N ** 1.1
-    assert l_2_error < 6e-5 * N ** 2.1
-    assert l_1_error < 1.2e-4 * N ** 3.2
-
+    assert l_inf_error < 4.5e-5 * N**1.1
+    assert l_2_error < 6e-5 * N**2.1
+    assert l_1_error < 1.2e-4 * N**3.2

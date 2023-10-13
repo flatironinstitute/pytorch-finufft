@@ -7,34 +7,7 @@ import pytorch_finufft
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 torch.set_default_dtype(torch.float64)
-torch.manual_seed(0)
-
-
-def apply_finufft3d2(fftshift: bool, isign: int):
-    """Wrapper around finufft2D1.apply(...)"""
-
-    def f(
-        points_x: torch.Tensor,
-        points_y: torch.Tensor,
-        points_z: torch.Tensor,
-        targets: torch.Tensor,
-    ) -> torch.Tensor:
-        return pytorch_finufft.functional.finufft3D2.apply(
-            points_x,
-            points_y,
-            points_z,
-            targets,
-            None,
-            fftshift,
-            dict(isign=isign),
-        )
-
-    return f
-
-
-######################################################################
-# TEST CASES
-######################################################################
+torch.manual_seed(1234)
 
 
 Ns = [
@@ -81,7 +54,7 @@ def check_t1_backward(
             dict(modeord=int(not fftshift), isign=isign),
         )
 
-    assert gradcheck(func, inputs, atol=1e-5 * N)
+    assert gradcheck(func, inputs, eps=1e-8, atol=1e-5 * N)
 
 
 @pytest.mark.parametrize("N", Ns)
@@ -129,120 +102,6 @@ def test_t1_backward_cuda_points(
 ######################################################################
 
 
-@pytest.mark.parametrize("N", Ns)
-@pytest.mark.parametrize("modifier", length_modifiers)
-@pytest.mark.parametrize("fftshift", [True, False])
-@pytest.mark.parametrize("isign", [-1, 1])
-def test_t2_backward_CPU_targets(
-    N: int, modifier: int, fftshift: bool, isign: int
-) -> None:
-    """
-    Uses gradcheck to test the correctness of the implemntation
-    of the derivative in targets for 2d NUFFT type 2
-    """
-
-    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    targets = torch.randn((N, N, N), dtype=torch.complex128)
-
-    points_x.requires_grad = False
-    points_y.requires_grad = False
-    points_z.requires_grad = False
-    targets.requires_grad = True
-
-    inputs = (points_x, points_y, points_z, targets)
-
-    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
-
-
-@pytest.mark.parametrize("N", Ns)
-@pytest.mark.parametrize("modifier", length_modifiers)
-@pytest.mark.parametrize("fftshift", [True, False])
-@pytest.mark.parametrize("isign", [-1, 1])
-def test_t2_backward_CPU_points_x(
-    N: int, modifier: int, fftshift: bool, isign: int
-) -> None:
-    """
-    Uses gradcheck to test the correctness of the implemntation
-    of the derivative in targets for 2d NUFFT type 2
-
-    N -- size of arrays
-    modifier -- perturb the size of the arrays with size modifier
-    fftshift -- test different fftshift values (T/F)
-    isign -- test different isign values (+/- 1)
-    """
-
-    points_x = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    targets = torch.randn((N, N, N), dtype=torch.complex128)
-
-    points_x.requires_grad = True
-    points_y.requires_grad = False
-    points_z.requires_grad = False
-    targets.requires_grad = False
-
-    inputs = (points_x, points_y, points_z, targets)
-
-    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
-
-
-@pytest.mark.parametrize("N", Ns)
-@pytest.mark.parametrize("modifier", length_modifiers)
-@pytest.mark.parametrize("fftshift", [True, False])
-@pytest.mark.parametrize("isign", [-1, 1])
-def test_t2_backward_CPU_points_y(
-    N: int, modifier: int, fftshift: bool, isign: int
-) -> None:
-    """
-    Uses gradcheck to test the correctness of the implemntation
-    of the derivative in targets for 2d NUFFT type 2
-    """
-
-    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    points_y = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-    points_z = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    targets = torch.randn((N, N, N), dtype=torch.complex128)
-
-    points_x.requires_grad = False
-    points_y.requires_grad = True
-    points_z.requires_grad = False
-    targets.requires_grad = False
-
-    inputs = (points_x, points_y, points_z, targets)
-
-    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
-
-
-@pytest.mark.parametrize("N", Ns)
-@pytest.mark.parametrize("modifier", length_modifiers)
-@pytest.mark.parametrize("fftshift", [True, False])
-@pytest.mark.parametrize("isign", [-1, 1])
-def test_t2_backward_CPU_points_z(
-    N: int, modifier: int, fftshift: bool, isign: int
-) -> None:
-    """
-    Uses gradcheck to test the correctness of the implemntation
-    of the derivative in targets for 2d NUFFT type 2
-    """
-
-    points_x = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    points_y = 2 * np.pi * torch.arange(0, 1, 1 / N, dtype=torch.float64)
-    points_z = 3 * np.pi * (torch.rand(N) - (torch.ones(N) / 2))
-    targets = torch.randn((N, N, N), dtype=torch.complex128)
-
-    points_x.requires_grad = False
-    points_y.requires_grad = False
-    points_z.requires_grad = True
-    targets.requires_grad = False
-
-    inputs = (points_x, points_y, points_z, targets)
-
-    assert gradcheck(apply_finufft3d2(fftshift, isign), inputs)
-
-
-
 def check_t2_backward(
     N: int,
     modifier: int,
@@ -279,6 +138,7 @@ def test_t2_backward_CPU_values(
 ) -> None:
     check_t2_backward(N, modifier, fftshift, isign, "cpu", False)
 
+
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("modifier", length_modifiers)
 @pytest.mark.parametrize("fftshift", [False, True])
@@ -287,6 +147,7 @@ def test_t2_backward_CPU_points(
     N: int, modifier: int, fftshift: bool, isign: int
 ) -> None:
     check_t2_backward(N, modifier, fftshift, isign, "cpu", True)
+
 
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("modifier", length_modifiers)
@@ -297,6 +158,7 @@ def test_t2_backward_cuda_values(
 ) -> None:
     check_t2_backward(N, modifier, fftshift, isign, "cuda", False)
 
+
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("modifier", length_modifiers)
 @pytest.mark.parametrize("fftshift", [False, True])
@@ -305,4 +167,3 @@ def test_t2_backward_cuda_points(
     N: int, modifier: int, fftshift: bool, isign: int
 ) -> None:
     check_t2_backward(N, modifier, fftshift, isign, "cuda", True)
-

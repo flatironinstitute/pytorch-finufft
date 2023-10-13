@@ -21,31 +21,31 @@ def check_devices(*tensors: torch.Tensor) -> None:
             )
 
 
-def check_dtypes(values: torch.Tensor, points: torch.Tensor) -> None:
+def check_dtypes(data: torch.Tensor, points: torch.Tensor, name: str) -> None:
     """
-    Checks that values is complex-valued
+    Checks that data is complex-valued
     and that points is real-valued of the same precision
     """
-    complex_dtype = values.dtype
+    complex_dtype = data.dtype
     if complex_dtype is torch.complex128:
         real_dtype = torch.float64
     elif complex_dtype is torch.complex64:
         real_dtype = torch.float32
     else:
         raise TypeError(
-            "Values must have a dtype of torch.complex64 or torch.complex128"
+            f"{name} must have a dtype of torch.complex64 or torch.complex128"
         )
 
     if points.dtype is not real_dtype:
         raise TypeError(
-            f"Points must have a dtype of {real_dtype} as values has a dtype of "
-            f"{complex_dtype}"
+            f"Points must have a dtype of {real_dtype} as {name.lower()} has a "
+            f"dtype of {complex_dtype}"
         )
 
 
-def check_sizes(values: torch.Tensor, points: torch.Tensor) -> None:
+def check_sizes_t1(values: torch.Tensor, points: torch.Tensor) -> None:
     """
-    Checks that values and points are 1d and of the same length.
+    Checks that values and points of the same length.
     This is used in type1.
     """
     if len(values.shape) != 1:
@@ -82,60 +82,23 @@ def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> 
                 raise ValueError("Got output_shape that was not positive integer")
 
 
-### TODO delete the following post-consolidation
-
-_COORD_CHAR_TABLE = "xyz"
-
-
-def _type2_checks(points_tuple: torch.Tensor, targets: torch.Tensor) -> None:
+def check_sizes_t2(targets: torch.Tensor, points: torch.Tensor) -> None:
     """
-    Performs all type, precision, size, device, ... checks for the
-    type 2 FINUFFT
-
-    Parameters
-    ----------
-    points_tuple : Tuple[torch.Tensor, ...]
-        A tuple of all points tensors. Eg, (points, ), or (points_x, points_y)
-    targets : torch.Tensor
-        The targets tensor from the forward call to FINUFFT
-
-    Raises
-    ------
-    TypeError
-        In the case that targets is not complex-valued
-    ValueError
-        In the case that targets is not of the correct shape
-    TypeError
-        In the case that any of the points tensors are not of the correct
-        type or the correct precision
-    ValueError
-        In the case that the i'th dimension of targets is not of the same
-        length as the i'th points tensor
+    Checks that targets and points are of the same dimension.
+    This is used in type2.
     """
-
-    if not torch.is_complex(targets):
-        raise TypeError("Got values that is not complex-valued")
-
-    complex_dtype = targets.dtype
-    real_dtype = torch.float32 if complex_dtype is torch.complex64 else torch.float64
-
-    dimension = len(points_tuple)
     targets_dim = len(targets.shape)
+    if len(points.shape) == 1:
+        points_dim = 1
+    elif len(points.shape) == 2:
+        points_dim = points.shape[0]
+    else:
+        raise ValueError("The points tensor must be 1d or 2d")
 
-    if dimension != targets_dim:
+    if points_dim not in {1, 2, 3}:
+        raise ValueError(f"Points can be at most 3d, got {points.shape} instead")
+
+    if targets_dim != points_dim:
         raise ValueError(
-            f"For type 2 {dimension}d FINUFFT, targets must be a {dimension}d " "tensor"
+            f"For type 2 {points_dim}d FINUFFT, targets must be a {points_dim}d tensor"
         )
-
-    coord_char = ""
-
-    # Check dtypes (complex vs. real) on the inputs
-    for i in range(dimension):
-        coord_char = "" if dimension == 1 else ("_" + _COORD_CHAR_TABLE[i])
-
-        if points_tuple[i].dtype is not real_dtype:
-            raise TypeError(
-                f"Got points{coord_char} that is not {real_dtype}-valued; "
-                f"points{coord_char} must also be the same precision as "
-                "targets."
-            )

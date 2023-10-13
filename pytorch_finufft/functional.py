@@ -91,8 +91,8 @@ class finufft_type1(torch.autograd.Function):
             raise NotImplementedError("In-place results are not yet implemented")
 
         checks.check_devices(values, points)
-        checks.check_dtypes(values, points)
-        checks.check_sizes(values, points)
+        checks.check_dtypes(values, points, "Values")
+        checks.check_sizes_t1(values, points)
         points = torch.atleast_2d(points)
         ndim = points.shape[0]
         checks.check_output_shape(ndim, output_shape)
@@ -232,14 +232,14 @@ class finufft_type2(torch.autograd.Function):
         """
 
         if out is not None:
-            print("In-place results are not yet implemented")
+            raise NotImplementedError("In-place results are not yet implemented")
 
-        # TODO -- extend checks to 2d
-        checks._type2_checks(points, targets)
+        checks.check_devices(targets, points)
+        checks.check_dtypes(targets, points, "Targets")
+        checks.check_sizes_t2(targets, points)
 
         if finufftkwargs is None:
             finufftkwargs = dict()
-
         finufftkwargs = {k: v for k, v in finufftkwargs.items()}
         _mode_ordering = finufftkwargs.pop(
             "modeord", 1
@@ -248,17 +248,17 @@ class finufft_type2(torch.autograd.Function):
             "isign", -1
         )  # isign=-1 is finufft default for type 2
 
-        ndim = points.shape[0]
-        if _mode_ordering == 1:
+        points = torch.atleast_2d(points)
+        if _mode_ordering:
             targets = torch.fft.fftshift(targets)
+
+        ctx.save_for_backward(points, targets)
 
         ctx.isign = _i_sign
         ctx.mode_ordering = _mode_ordering
         ctx.finufftkwargs = finufftkwargs
 
-        ctx.save_for_backward(points, targets)
-
-        nufft_func = get_nufft_func(ndim, 2, points.device.type)
+        nufft_func = get_nufft_func(points.shape[0], 2, points.device.type)
 
         finufft_out = nufft_func(
             *points,
@@ -325,7 +325,7 @@ class finufft_type2(torch.autograd.Function):
                 **finufftkwargs,
             )
 
-            if _mode_ordering == 1:
+            if _mode_ordering:
                 grad_targets = torch.fft.ifftshift(grad_targets)
 
         return (

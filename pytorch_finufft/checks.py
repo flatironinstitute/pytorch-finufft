@@ -87,9 +87,7 @@ def check_output_shape(ndim: int, output_shape: Union[int, Tuple[int, ...]]) -> 
 _COORD_CHAR_TABLE = "xyz"
 
 
-def _type2_checks(
-    points_tuple: Tuple[torch.Tensor, ...], targets: torch.Tensor
-) -> None:
+def _type2_checks(points_tuple: torch.Tensor, targets: torch.Tensor) -> None:
     """
     Performs all type, precision, size, device, ... checks for the
     type 2 FINUFFT

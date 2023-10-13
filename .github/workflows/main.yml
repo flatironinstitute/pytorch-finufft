@@ -65,4 +65,3 @@ jobs:
     - name: Lint with mypy
       run: |
         mypy pytorch_finufft/
-

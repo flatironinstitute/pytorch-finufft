@@ -202,3 +202,69 @@ def test_t2_backward_CPU_points_y(
     inputs = (points_x, points_y, targets)
 
     assert gradcheck(apply_finufft2d2(fftshift, isign), inputs)
+
+
+
+def check_t2_backward(
+    N: int,
+    modifier: int,
+    fftshift: bool,
+    isign: int,
+    device: str,
+    points_or_targets: bool,
+) -> None:
+    points = torch.rand((2, N + modifier), dtype=torch.float64).to(device) * 2 * np.pi
+    targets = torch.randn(N, N, dtype=torch.complex128).to(device)
+
+    points.requires_grad = points_or_targets
+    targets.requires_grad = not points_or_targets
+
+    inputs = (points, targets)
+
+    def func(points, targets):
+        return pytorch_finufft.functional.finufft_type2.apply(
+            points,
+            targets,
+            None,
+            dict(modeord=int(not fftshift), isign=isign),
+        )
+
+    assert gradcheck(func, inputs, atol=1e-5 * N)
+
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_values(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    check_t2_backward(N, modifier, fftshift, isign, "cpu", False)
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_CPU_points(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    check_t2_backward(N, modifier, fftshift, isign, "cpu", True)
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_cuda_values(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    check_t2_backward(N, modifier, fftshift, isign, "cuda", False)
+
+@pytest.mark.parametrize("N", Ns)
+@pytest.mark.parametrize("modifier", length_modifiers)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t2_backward_cuda_points(
+    N: int, modifier: int, fftshift: bool, isign: int
+) -> None:
+    check_t2_backward(N, modifier, fftshift, isign, "cuda", True)
+

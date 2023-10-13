@@ -716,6 +716,21 @@ def get_nufft_func(
     return f
 
 
+def coordinate_ramps(shape, device):
+    start_points = -(torch.tensor(shape, device=device) // 2)
+    end_points = start_points + torch.tensor(shape, device=device)
+    coord_ramps = torch.stack(
+        torch.meshgrid(
+            *(
+                torch.arange(start, end, device=device)
+                for start, end in zip(start_points, end_points)
+            ),
+            indexing="ij",
+        )
+    )
+
+    return coord_ramps
+
 class finufft_type1(torch.autograd.Function):
     @staticmethod
     def forward(  # type: ignore[override]
@@ -803,17 +818,7 @@ class finufft_type1(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # wrt points
-            start_points = -(torch.tensor(grad_output.shape, device=device) // 2)
-            end_points = start_points + torch.tensor(grad_output.shape, device=device)
-            coord_ramps = torch.stack(
-                torch.meshgrid(
-                    *(
-                        torch.arange(start, end, device=device)
-                        for start, end in zip(start_points, end_points)
-                    ),
-                    indexing="ij",
-                )
-            )
+            coord_ramps = coordinate_ramps(grad_output.shape, device)
 
             # we can't batch in 1d case so we squeeze and fix up the ouput later
             ramped_grad_output = (
@@ -840,3 +845,160 @@ class finufft_type1(torch.autograd.Function):
             None,
             None,
         )
+
+
+
+class finufft_type2(torch.autograd.Function):
+    """
+    FINUFFT 2D problem type 2
+    """
+
+    @staticmethod
+    def forward(
+        ctx: Any,
+        points: torch.Tensor,
+        targets: torch.Tensor,
+        out: Optional[torch.Tensor] = None,
+        finufftkwargs: Dict[str, Union[int, float]] = None,
+    ) -> torch.Tensor:
+        """
+        Evaluates the Type 2 NUFFT on the inputs.
+
+        NOTE: By default, the ordering is set to match that of Pytorch,
+         Numpy, and Scipy's FFT APIs. To match the mode ordering
+         native to FINUFFT, add {'modeord': 0} to finufftkwargs.
+
+        Parameters
+        ----------
+        ctx : Any
+            Pytorch context objecy
+        points : torch.Tensor, shape=(ndim, num_points)
+            The non-uniform points x
+        targets : torch.Tensor
+            The values on the input grid
+        out : Optional[torch.Tensor], optional
+            Array to take the result in-place, by default None
+        finufftkwargs : Dict[str, Union[int, float]]
+            Additional arguments will be passed into FINUFFT. See
+            https://finufft.readthedocs.io/en/latest/python.html. 
+
+        Returns
+        -------
+        torch.Tensor
+            The Fourier transform of the targets grid evaluated at the points `points`
+
+        Raises
+        ------
+
+        """
+
+        if out is not None:
+            print("In-place results are not yet implemented")
+
+        # TODO -- extend checks to 2d
+        checks._type2_checks(points, targets)
+
+
+        if finufftkwargs is None:
+            finufftkwargs = dict()
+        
+        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
+        _mode_ordering = finufftkwargs.pop("modeord", 1) # not finufft default, but corresponds to pytorch default
+        _i_sign = finufftkwargs.pop("isign", -1) # isign=-1 is finufft default for type 2
+
+        ndim = points.shape[0]
+        if _mode_ordering == 1:
+            targets = torch.fft.fftshift(targets)
+
+
+        ctx.isign = _i_sign
+        ctx.mode_ordering = _mode_ordering
+        ctx.finufftkwargs = finufftkwargs
+
+        ctx.save_for_backward(points, targets)
+
+        nufft_func = get_nufft_func(ndim, 2, points.device.type)
+
+        finufft_out = nufft_func(
+            *points,
+            targets,
+            isign=_i_sign,
+            **finufftkwargs,
+        )
+
+        return finufft_out
+
+    @staticmethod
+    def backward(
+        ctx: Any, grad_output: torch.Tensor
+    ) -> Tuple[
+        Union[torch.Tensor, None],
+        Union[torch.Tensor, None],
+        Union[torch.Tensor, None],
+        None,
+        None,
+        None,
+    ]:
+        """
+        Implements derivatives wrt. each argument in the forward method.
+
+        Parameters
+        ----------
+        ctx : Any
+            Pytorch context object
+        grad_output : torch.Tensor
+            Backpass gradient output.
+
+        Returns
+        -------
+        Tuple[ Union[torch.Tensor, None], ...]
+            A tuple of derivatives wrt. each argument in the forward method
+        """
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+        finufftkwargs = ctx.finufftkwargs
+
+        points, targets = ctx.saved_tensors
+        device = points.device
+
+        grad_points = grad_targets = None
+        ndim = points.shape[0]
+
+        if ctx.needs_input_grad[0]:
+            coord_ramps = coordinate_ramps(targets.shape, device=device)
+            ramped_targets = coord_ramps * targets[np.newaxis] * 1j * _i_sign
+            nufft_func = get_nufft_func(ndim, 2, points.device.type)
+
+            grad_points = nufft_func(
+                    *points,
+                    ramped_targets.squeeze(),
+                    isign=_i_sign,
+                    **finufftkwargs,
+                ).conj()  # Currently don't really get why this is hard to replace with a flipped isign
+
+            grad_points = grad_points * grad_output
+            grad_points = torch.atleast_2d(grad_points.real)
+
+        if ctx.needs_input_grad[1]:
+            # wrt. targets
+            nufft_func = get_nufft_func(ndim, 1, points.device.type)
+
+            grad_targets = nufft_func(
+                    *points,
+                    grad_output,
+                    targets.shape,
+                    isign=-_i_sign,
+                    **finufftkwargs,
+                )
+            
+            if _mode_ordering == 1:
+                grad_targets = torch.fft.ifftshift(grad_targets)
+
+        return (
+            grad_points,
+            grad_targets,
+            None,
+            None,
+            None,
+        )
+

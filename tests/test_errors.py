@@ -33,7 +33,7 @@ def test_t2_mismatch_device_cuda_cpu() -> None:
     targets = torch.randn(*g[0].shape, dtype=torch.complex128).to("cuda:0")
 
     with pytest.raises(ValueError, match="Some tensors are not on the same device"):
-        pytorch_finufft.functional.finufft_type1.apply(points, targets)
+        pytorch_finufft.functional.finufft_type2.apply(points, targets)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="require multiple GPUs")

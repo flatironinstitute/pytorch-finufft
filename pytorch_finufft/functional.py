@@ -78,17 +78,11 @@ class finufft_type1(torch.autograd.Function):
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
-        out: Optional[torch.Tensor] = None,
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
     ) -> torch.Tensor:
         """
         Evaluates the Type 1 NUFFT on the inputs.
         """
-
-        if out is not None:
-            # All this requires is a check on the out array to make sure it is the
-            # correct shape.
-            raise NotImplementedError("In-place results are not yet implemented")
 
         checks.check_devices(values, points)
         checks.check_dtypes(values, points, "Values")
@@ -197,7 +191,6 @@ class finufft_type2(torch.autograd.Function):
         ctx: Any,
         points: torch.Tensor,
         targets: torch.Tensor,
-        out: Optional[torch.Tensor] = None,
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
     ) -> torch.Tensor:
         """
@@ -230,10 +223,6 @@ class finufft_type2(torch.autograd.Function):
         ------
 
         """
-
-        if out is not None:
-            raise NotImplementedError("In-place results are not yet implemented")
-
         checks.check_devices(targets, points)
         checks.check_dtypes(targets, points, "Targets")
         checks.check_sizes_t2(targets, points)

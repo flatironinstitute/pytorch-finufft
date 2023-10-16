@@ -58,7 +58,6 @@ def check_t1_backward(
             points,
             values,
             (N, N + modifier),
-            None,
             dict(modeord=int(not fftshift), isign=isign),
         )
 
@@ -125,7 +124,6 @@ def check_t2_backward(
         return pytorch_finufft.functional.finufft_type2.apply(
             points,
             targets,
-            None,
             dict(modeord=int(not fftshift), isign=isign),
         )
 

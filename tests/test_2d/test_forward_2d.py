@@ -82,7 +82,6 @@ def test_t2_forward_CPU(N: int, fftshift: bool) -> None:
     finufft_out = pytorch_finufft.functional.finufft_type2.apply(
         points,
         targets,
-        None,
         {"modeord": int(not fftshift)},
     )
 

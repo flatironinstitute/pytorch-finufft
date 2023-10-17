@@ -8,9 +8,8 @@ Pre-requistes
 Pytorch-FINUFFT requires either ``finufft`` *and/or* ``cufinufft``
 2.2.0 or greater. Currently, this version is unreleased
 and can only be installed from source. See the relevant pages for
-`finufft <https://finufft.readthedocs.io/en/latest/install.html>`_
-and
-`cufinufft <https://finufft.readthedocs.io/en/latest/install_gpu.html>`_.
+:external+finufft:doc:`finufft <install>` and
+:external+finufft:doc:`cufinufft <install_gpu>`.
 
 
 Pytorch-FINUFFT also requires ``pytorch`` 2.0 or greater. See the installation

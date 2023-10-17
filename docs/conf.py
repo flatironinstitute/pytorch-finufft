@@ -54,6 +54,7 @@ html_context = {
 }
 
 
+autodoc_mock_imports = ["torch", "finufft", "cufinufft"]
 autodoc_typehints = "signature"
 napoleon_numpy_docstring = True
 

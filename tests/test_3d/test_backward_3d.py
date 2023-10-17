@@ -46,11 +46,12 @@ def check_t1_backward(
     inputs = (points, values)
 
     def func(points, values):
-        return pytorch_finufft.functional.finufft_type1.apply(
+        return pytorch_finufft.functional.finufft_type1(
             points,
             values,
             (N, N + modifier, N + 2 * modifier),
-            dict(modeord=int(not fftshift), isign=isign),
+            modeord=int(not fftshift),
+            isign=isign,
         )
 
     assert gradcheck(func, inputs, eps=1e-8, atol=1e-5 * N)
@@ -118,10 +119,8 @@ def check_t2_backward(
     inputs = (points, targets)
 
     def func(points, targets):
-        return pytorch_finufft.functional.finufft_type2.apply(
-            points,
-            targets,
-            dict(modeord=int(not fftshift), isign=isign),
+        return pytorch_finufft.functional.finufft_type2(
+            points, targets, modeord=int(not fftshift), isign=isign
         )
 
     assert gradcheck(func, inputs, atol=1e-5 * N)

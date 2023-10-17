@@ -7,7 +7,7 @@ Pytorch-FINUFFT
 ===============
 
 This package provides a `Pytorch <https://pytorch.org/>`_ interface to the
-`Flatiron Instutute Non-uniform FFT (FINUFFT) <https://finufft.readthedocs.io/en/latest/>`_
+`Flatiron Institute Non-uniform FFT (FINUFFT) <https://finufft.readthedocs.io/en/latest/>`_
 library.
 
 Currently, this supports both forward evaluation and backward differentiation in

@@ -1,0 +1,6 @@
+sphinx
+nbsphinx
+sphinx_copybutton
+sphinx-gallery
+pydata-sphinx-theme
+texext

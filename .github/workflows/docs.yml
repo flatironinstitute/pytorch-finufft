@@ -47,7 +47,7 @@ jobs:
           ls
 
           rm -rf pyt-fnft-docs/*
-          cp -r html pyt-fnft-docs/
+          cp -r html/* pyt-fnft-docs/
 
           cd pyt-fnft-docs/
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"

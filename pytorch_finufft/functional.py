@@ -346,14 +346,16 @@ def finufft_type1(
         Points must lie in the range ``[-3pi, 3pi]``.
     values : torch.Tensor
         Length N complex-valued tensor of values at the non-uniform points
-    output_shape : Union[int, Tuple[int, int], Tuple[int, int, int]]
-        Requested output shape of Fourier modes
-    **finufftkwargs : Union[int, float]
+    output_shape : int | tuple(int, ...)
+        Requested output shape of Fourier modes. Must be a tuple of length D or
+        an integer (1D only).
+    **finufftkwargs : int | float
         Additional keyword arguments are forwarded to the underlying
         FINUFFT functions. A few notable options are
-         - `eps`: precision requested (default: ``1e-6``)
-         - `modeord`: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
-         - `isign`: Sign of the exponent in the Fourier transform (default: ``-1``)
+
+        - ``eps``: precision requested (default: ``1e-6``)
+        - ``modeord``: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
+        - ``isign``: Sign of the exponent in the Fourier transform (default: ``-1``)
 
     Returns
     -------
@@ -384,12 +386,13 @@ def finufft_type2(
         Points must lie in the range ``[-3pi, 3pi]``.
     targets : torch.Tensor
         D-dimensional complex-valued tensor of Fourier modes to evaluate at the points
-    **finufftkwargs : Union[int, float]
+    **finufftkwargs : int | float
         Additional keyword arguments are forwarded to the underlying
         FINUFFT functions. A few notable options are
-         - `eps`: precision requested (default: ``1e-6``)
-         - `modeord`: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
-         - `isign`: Sign of the exponent in the Fourier transform (default: ``-1``)
+
+        - ``eps``: precision requested (default: ``1e-6``)
+        - ``modeord``: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
+        - ``isign``: Sign of the exponent in the Fourier transform (default: ``-1``)
 
     Returns
     -------

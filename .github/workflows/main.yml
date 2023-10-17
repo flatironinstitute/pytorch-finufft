@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install .[dev]
+        python -m pip install .[dev]
 
     - name: Pytest
       run: |
@@ -48,7 +48,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .[dev]
+        python -m pip install -e .[dev]
 
     - name: Check formatting
       run: |
@@ -79,8 +79,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r docs/requirements.txt
-        pip install -e .
+        python -m pip install -r docs/requirements.txt
+        python -m pip install --no-deps -e .
 
     - name: Check docs
       env:

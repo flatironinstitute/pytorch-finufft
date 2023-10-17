@@ -11,7 +11,7 @@ This package provides a `Pytorch <https://pytorch.org/>`_ interface to the
 library.
 
 Currently, this supports both forward evaluation and backward differentiation in
-both values and positions for the `"type 1" and "type 2" <https://finufft.readthedocs.io/en/latest/math.html>`_ transforms.
+both values and positions for the :external+finufft:doc:`"type 1" and "type 2" <math>` transforms.
 
 .. toctree::
    :maxdepth: 2

@@ -34,7 +34,7 @@ def check_t1_forward(N: int, device: str) -> None:
     print("shape of points is " + str(points.shape))
     print("shape of values is " + str(values.shape))
 
-    finufft_out = pytorch_finufft.functional.finufft_type1.apply(
+    finufft_out = pytorch_finufft.functional.finufft_type1(
         points,
         values,
         (N, N, N),
@@ -77,7 +77,7 @@ def test_t2_forward_CPU(N: int) -> None:
     print("shape of points is " + str(points.shape))
     print("shape of targets is " + str(targets.shape))
 
-    finufft_out = pytorch_finufft.functional.finufft_type2.apply(
+    finufft_out = pytorch_finufft.functional.finufft_type2(
         points,
         targets,
     )

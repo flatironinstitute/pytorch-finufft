@@ -71,13 +71,13 @@ def coordinate_ramps(shape, device):
     return coord_ramps
 
 
-class finufft_type1(torch.autograd.Function):
+class FinufftType1(torch.autograd.Function):
     @staticmethod
     def forward(  # type: ignore[override]
         ctx: Any,
         points: torch.Tensor,
         values: torch.Tensor,
-        output_shape: Union[int, Tuple[int, int], Tuple[int, int, int]],
+        output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
     ) -> torch.Tensor:
         """
@@ -181,7 +181,7 @@ class finufft_type1(torch.autograd.Function):
         )
 
 
-class finufft_type2(torch.autograd.Function):
+class FinufftType2(torch.autograd.Function):
     """
     FINUFFT 2D problem type 2
     """
@@ -324,3 +324,77 @@ class finufft_type2(torch.autograd.Function):
             None,
             None,
         )
+
+
+def finufft_type1(
+    points: torch.Tensor,
+    values: torch.Tensor,
+    output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
+    **finufftkwargs: Union[int, float],
+) -> torch.Tensor:
+    """
+    Evaluates the Type 1 (nonuniform-to-uniform) NUFFT on the inputs.
+
+    This is a wrapper around :func:`finufft.nufft1d1`, :func:`finufft.nufft2d1`, and
+    :func:`finufft.nufft3d1` on CPU, and :func:`cufinufft.nufft1d1`,
+    :func:`cufinufft.nufft2d1`, and :func:`cufinufft.nufft3d1` on GPU.
+
+    Parameters
+    ----------
+    points : torch.Tensor
+        DxN tensor of locations of the non-uniform points.
+        Points must lie in the range ``[-3pi, 3pi]``.
+    values : torch.Tensor
+        Length N complex-valued tensor of values at the non-uniform points
+    output_shape : Union[int, Tuple[int, int], Tuple[int, int, int]]
+        Requested output shape of Fourier modes
+    **finufftkwargs : Union[int, float]
+        Additional keyword arguments are forwarded to the underlying
+        FINUFFT functions. A few notable options are
+         - `eps`: precision requested (default: ``1e-6``)
+         - `modeord`: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
+         - `isign`: Sign of the exponent in the Fourier transform (default: ``-1``)
+
+    Returns
+    -------
+    torch.Tensor
+        Tensor with shape ``output_shape`` containing the Fourier
+        transform of the values.
+    """
+    res: torch.Tensor = FinufftType1.apply(points, values, output_shape, finufftkwargs)
+    return res
+
+
+def finufft_type2(
+    points: torch.Tensor,
+    targets: torch.Tensor,
+    **finufftkwargs: Union[int, float],
+) -> torch.Tensor:
+    """
+    Evaluates the Type 2 (uniform-to-nonuniform) NUFFT on the inputs.
+
+    This is a wrapper around :func:`finufft.nufft1d2`, :func:`finufft.nufft2d2`, and
+    :func:`finufft.nufft3d2` on CPU, and :func:`cufinufft.nufft1d2`,
+    :func:`cufinufft.nufft2d2`, and :func:`cufinufft.nufft3d2` on GPU.
+
+    Parameters
+    ----------
+    points : torch.Tensor
+        DxN tensor of locations of the non-uniform points.
+        Points must lie in the range ``[-3pi, 3pi]``.
+    targets : torch.Tensor
+        D-dimensional complex-valued tensor of Fourier modes to evaluate at the points
+    **finufftkwargs : Union[int, float]
+        Additional keyword arguments are forwarded to the underlying
+        FINUFFT functions. A few notable options are
+         - `eps`: precision requested (default: ``1e-6``)
+         - `modeord`: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
+         - `isign`: Sign of the exponent in the Fourier transform (default: ``-1``)
+
+    Returns
+    -------
+    torch.Tensor
+        A DxN tensor of values at the non-uniform points.
+    """
+    res: torch.Tensor = FinufftType2.apply(points, targets, finufftkwargs)
+    return res

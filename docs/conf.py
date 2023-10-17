@@ -20,6 +20,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "nbsphinx",
     "sphinx_copybutton",
+    "texext.math_dollar",
 ]
 
 templates_path = ["_templates"]

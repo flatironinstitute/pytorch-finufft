@@ -2,6 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
+import warnings
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import torch
@@ -16,7 +17,10 @@ except ImportError:
 try:
     import cufinufft
 
-    CUFINUFFT_AVAIL = True
+    if cufinufft.__version__.startswith("1."):
+        warnings.warn("pytorch-finufft does not support cufinufft v1.x.x")
+    else:
+        CUFINUFFT_AVAIL = True
 except ImportError:
     CUFINUFFT_AVAIL = False
 

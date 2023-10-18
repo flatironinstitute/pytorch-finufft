@@ -84,7 +84,7 @@ jobs:
 
     - name: Check docs
       env:
-        SPHINXOPTS: "-Wq --keep-going"
+        SPHINXOPTS: "-Wq --keep-going -D plot_gallery=0"
       run: |
         cd docs/
         make clean

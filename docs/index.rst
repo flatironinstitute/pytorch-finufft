@@ -18,5 +18,5 @@ both values and positions for the :external+finufft:doc:`"type 1" and "type 2" <
    :caption: Contents:
 
    installation
-   examples
+   examples/index
    api

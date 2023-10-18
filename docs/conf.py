@@ -11,14 +11,13 @@ author = "Brian Ward, Michael Eickenberg"
 
 extensions = [
     "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
+    "sphinx.ext.autodoc",
+    "sphinx_gallery.gen_gallery",
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "sphinx.ext.autodoc",
     "sphinx.ext.githubpages",
     "sphinx.ext.mathjax",
-    "nbsphinx",
     "sphinx_copybutton",
     "texext.math_dollar",
 ]
@@ -75,3 +74,16 @@ intersphinx_mapping = {
 # by removing things like In [10]: from the text to be copied
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
+
+# sphinx-gallery
+sphinx_gallery_conf = {
+    "examples_dirs": "../examples",
+    "gallery_dirs": "examples",
+    "image_scrapers": ("matplotlib",),
+    "filename_pattern": ".*\.py",  # execute all examples
+    "only_warn_on_example_error": True,
+    "reference_url": {
+        "pytorch_finufft": None,  # local docs
+    },
+    "download_all_examples": False,
+}

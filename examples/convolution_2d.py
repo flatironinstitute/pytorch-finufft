@@ -1,6 +1,7 @@
-#######################################################################################
-# Convolution in 2D example
-# =========================
+"""
+Convolution in 2D
+=================
+"""
 
 
 #######################################################################################
@@ -25,7 +26,7 @@ def gaussian_function(x, y, sigma=1):
 
 #######################################################################################
 # Let's visualize this filter kernel. We will be using it to convolve with points
-# living on the [0, 2*pi] x [0, 2*pi] torus. So let's dimension it accordingly.
+# living on the $[0, 2*\pi] \times [0, 2*\pi]$ torus. So let's dimension it accordingly.
 
 shape = (128, 128)
 sigma = 0.5
@@ -35,16 +36,16 @@ y = np.linspace(-np.pi, np.pi, shape[1], endpoint=False)
 gaussian_kernel = gaussian_function(x[:, np.newaxis], y, sigma=sigma)
 
 fig, ax = plt.subplots()
-ax.imshow(gaussian_kernel)
+_ = ax.imshow(gaussian_kernel)
 
 #######################################################################################
-# In order for the kernel to not shift the signal, we need to place its mass at 0
+# In order for the kernel to not shift the signal, we need to place its mass at 0.
 # To do this, we ifftshift the kernel
 
 shifted_gaussian_kernel = np.fft.ifftshift(gaussian_kernel)
 
 fig, ax = plt.subplots()
-ax.imshow(shifted_gaussian_kernel)
+_ = ax.imshow(shifted_gaussian_kernel)
 
 
 #######################################################################################
@@ -57,7 +58,8 @@ fig, ax = plt.subplots()
 ax.set_xlim(0, 2 * np.pi)
 ax.set_ylim(0, 2 * np.pi)
 ax.set_aspect("equal")
-ax.scatter(points[0], points[1], s=1)
+_ = ax.scatter(points[0], points[1], s=1)
+
 
 #######################################################################################
 # Now we can convolve the point cloud with the filter kernel.
@@ -75,7 +77,7 @@ fourier_points = pytorch_finufft.functional.finufft_type1(
 fig, axs = plt.subplots(1, 3)
 axs[0].imshow(fourier_shifted_gaussian_kernel.real)
 axs[1].imshow(fourier_points.real, vmin=-10, vmax=10)
-axs[2].imshow(
+_ = axs[2].imshow(
     (
         fourier_points
         * fourier_shifted_gaussian_kernel
@@ -84,7 +86,6 @@ axs[2].imshow(
     vmin=-10,
     vmax=10,
 )
-
 
 #######################################################################################
 # We now have two possibilities: Invert the Fourier transform on a grid, or on a point
@@ -95,7 +96,7 @@ convolved_points = torch.fft.ifft2(fourier_points * fourier_shifted_gaussian_ker
 
 fig, ax = plt.subplots()
 ax.imshow(convolved_points.real)
-ax.scatter(
+_ = ax.scatter(
     points[1] / 2 / np.pi * shape[0], points[0] / 2 / np.pi * shape[1], s=2, c="r"
 )
 
@@ -118,7 +119,7 @@ convolved_at_points = pytorch_finufft.functional.finufft_type2(
 
 fig, ax = plt.subplots()
 ax.imshow(convolved_points.real)
-ax.scatter(
+_ = ax.scatter(
     points[1] / 2 / np.pi * shape[0],
     points[0] / 2 / np.pi * shape[1],
     s=10 * convolved_at_points,
@@ -231,4 +232,4 @@ im = ax.imshow(
         48:80, 48:80
     ]
 )
-fig.colorbar(im, ax=ax)
+_ = fig.colorbar(im, ax=ax)

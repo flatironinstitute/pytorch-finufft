@@ -12,7 +12,16 @@ BUILDDIR      = _build
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.PHONY: help Makefile
+clean:
+	$(RM) -rf $(BUILDDIR)/*
+	$(RM) -rf examples/
+
+.PHONY: help Makefile clean
+
+# shortcut to skip building examples, run like:
+# make fast-html
+fast-%: Makefile
+	$(MAKE) $* SPHINXOPTS="$(SPHINXOPTS) -D plot_gallery=0"
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

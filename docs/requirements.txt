@@ -1,6 +1,6 @@
 sphinx
-nbsphinx
 sphinx_copybutton
 sphinx-gallery
+matplotlib
 pydata-sphinx-theme
 texext

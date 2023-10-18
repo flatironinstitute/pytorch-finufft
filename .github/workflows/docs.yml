@@ -1,4 +1,4 @@
-name: Build Pytorch-FINUFFT docs
+name: docs
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-docs:
+  build:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}

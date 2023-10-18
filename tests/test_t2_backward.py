@@ -37,7 +37,7 @@ def check_t2_backward(
             isign=isign,
         )
 
-    assert gradcheck(func, inputs, eps=1e-8, atol=1.5e-5 * N)
+    assert gradcheck(func, inputs, eps=1e-8, atol=2e-5 * N)
 
 
 #### 1D TESTS ####

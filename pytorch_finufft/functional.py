@@ -527,3 +527,34 @@ def finufft_type2(
     """
     res: torch.Tensor = FinufftType2.apply(points, targets, finufftkwargs)
     return res
+
+
+def finuifft_type1(
+    points: torch.Tensor,
+    values: torch.Tensor,
+    output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
+    **finufftkwargs: Union[int, float],
+) -> torch.Tensor:
+    """
+    Equivalent to :func:`~pytorch_finufft.functional.finufft_type1`,
+    but passing ``isign=1`` and dividing by the size of the output.
+    """
+    finufftkwargs["isign"] = 1
+    res: torch.Tensor = finufft_type1(points, values, output_shape, **finufftkwargs)
+    res = res / res.numel()
+    return res
+
+
+def finuifft_type2(
+    points: torch.Tensor,
+    targets: torch.Tensor,
+    **finufftkwargs: Union[int, float],
+) -> torch.Tensor:
+    """
+    Equivalent to :func:`~pytorch_finufft.functional.finufft_type2`,
+    but passing ``isign=1`` and dividing by the size of the output.
+    """
+    finufftkwargs["isign"] = 1
+    res: torch.Tensor = finufft_type2(points, targets, **finufftkwargs)
+    res = res / res.numel()
+    return res

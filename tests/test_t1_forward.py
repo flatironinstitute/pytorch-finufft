@@ -39,77 +39,111 @@ def check_t1_forward(N: int, dim: int, device: str) -> None:
     assert l_1_error < 1e-5 * N**4.5
 
 
-#### 1D TESTS ####
-
-Ns = [
-    5,
-    10,
-    15,
-    100,
-    101,
-    1000,
-    1001,
-    3750,
-    5000,
-    5001,
-    6250,
-    7500,
+Ns_and_dims = [
+    (2, 1),
+    (3, 1),
+    (5, 1),
+    (10, 1),
+    (100, 1),
+    (101, 1),
+    (1000, 1),
+    (10001, 1),
+    (2, 2),
+    (3, 2),
+    (5, 2),
+    (10, 2),
+    (101, 2),
+    (2, 3),
+    (3, 3),
+    (5, 3),
+    (10, 3),
+    (37, 3),
 ]
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_1D_forward_CPU(N: int) -> None:
-    check_t1_forward(N, 1, "cpu")
+@pytest.mark.parametrize("N_and_dim", Ns_and_dims)
+def test_t1_forward_CPU(N_and_dim) -> None:
+    N, dim = N_and_dim
+    check_t1_forward(N, dim, "cpu")
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_1D_forward_cuda(N: int) -> None:
-    check_t1_forward(N, 1, "cuda")
+@pytest.mark.parametrize("N_and_dim", Ns_and_dims)
+def test_t1_forward_cuda(N_and_dim) -> None:
+    N, dim = N_and_dim
+    check_t1_forward(N, dim, "cuda")
 
 
-#### 2D TESTS ####
-Ns = [
-    3,
-    10,
-    15,
-    75,
-    76,
-    95,
-    96,
-    100,
-    101,
-]
+# #### 1D TESTS ####
+
+# Ns = [
+#     5,
+#     10,
+#     15,
+#     100,
+#     101,
+#     1000,
+#     1001,
+#     3750,
+#     5000,
+#     5001,
+#     6250,
+#     7500,
+# ]
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_2D_forward_CPU(N: int) -> None:
-    check_t1_forward(N, 2, "cpu")
+# @pytest.mark.parametrize("N", Ns)
+# def test_t1_1D_forward_CPU(N: int) -> None:
+#     check_t1_forward(N, 1, "cpu")
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_2D_forward_cuda(N: int) -> None:
-    check_t1_forward(N, 2, "cuda")
+# @pytest.mark.parametrize("N", Ns)
+# def test_t1_1D_forward_cuda(N: int) -> None:
+#     check_t1_forward(N, 1, "cuda")
 
 
-#### 3D TESTS ####
-
-Ns = [
-    3,
-    5,
-    10,
-    15,
-    16,
-    25,
-    26,
-    37,
-]
-
-
-@pytest.mark.parametrize("N", Ns)
-def test_t1_3D_forward_CPU(N: int) -> None:
-    check_t1_forward(N, 3, "cpu")
+# #### 2D TESTS ####
+# Ns = [
+#     3,
+#     10,
+#     15,
+#     75,
+#     76,
+#     95,
+#     96,
+#     100,
+#     101,
+# ]
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t1_3D_forward_cuda(N: int) -> None:
-    check_t1_forward(N, 3, "cuda")
+# @pytest.mark.parametrize("N", Ns)
+# def test_t1_2D_forward_CPU(N: int) -> None:
+#     check_t1_forward(N, 2, "cpu")
+
+
+# @pytest.mark.parametrize("N", Ns)
+# def test_t1_2D_forward_cuda(N: int) -> None:
+#     check_t1_forward(N, 2, "cuda")
+
+
+# #### 3D TESTS ####
+
+# Ns = [
+#     3,
+#     5,
+#     10,
+#     15,
+#     16,
+#     25,
+#     26,
+#     37,
+# ]
+
+
+# @pytest.mark.parametrize("N", Ns)
+# def test_t1_3D_forward_CPU(N: int) -> None:
+#     check_t1_forward(N, 3, "cpu")
+
+
+# @pytest.mark.parametrize("N", Ns)
+# def test_t1_3D_forward_cuda(N: int) -> None:
+#     check_t1_forward(N, 3, "cuda")

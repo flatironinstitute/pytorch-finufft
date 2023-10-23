@@ -61,13 +61,11 @@ Ns_and_dims = [
 ]
 
 
-@pytest.mark.parametrize("N_and_dim", Ns_and_dims)
-def test_t1_forward_CPU(N_and_dim) -> None:
-    N, dim = N_and_dim
+@pytest.mark.parametrize("N, dim", Ns_and_dims)
+def test_t1_forward_CPU(N, dim) -> None:
     check_t1_forward(N, dim, "cpu")
 
 
-@pytest.mark.parametrize("N_and_dim", Ns_and_dims)
-def test_t1_forward_cuda(N_and_dim) -> None:
-    N, dim = N_and_dim
+@pytest.mark.parametrize("N, dim", Ns_and_dims)
+def test_t1_forward_cuda(N, dim) -> None:
     check_t1_forward(N, dim, "cuda")

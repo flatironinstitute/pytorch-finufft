@@ -119,14 +119,22 @@ class FinufftType1(torch.autograd.Function):
         if finufftkwargs is None:
             finufftkwargs = dict()
         else:  # copy to avoid mutating caller's dictionary
-            finufftkwargs = {k: v for k, v in finufftkwargs.items()}
+            finufftkwargs = finufftkwargs.copy()
 
         finufftkwargs.setdefault("isign", FinufftType1.ISIGN_DEFAULT)
         # pop because cufinufft doesn't support modeord
         modeord = finufftkwargs.pop("modeord", FinufftType1.MODEORD_DEFAULT)
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
-        finufft_out = nufft_func(*points, values, output_shape, **finufftkwargs)
+
+        batch_dims = values.shape[:-1]
+        finufft_out = nufft_func(
+            *points,
+            values.reshape(-1, values.shape[-1]).squeeze(),
+            output_shape,
+            **finufftkwargs,
+        )
+        finufft_out = finufft_out.reshape(*batch_dims, *output_shape)
 
         if modeord:
             finufft_out = torch.fft.ifftshift(finufft_out, dim=tuple(range(-ndim, 0)))
@@ -158,7 +166,7 @@ class FinufftType1(torch.autograd.Function):
                             output_shape,
                             finufftkwargs,
                         )
-                        for i in range(points.shape[0])
+                        for i in range(info.batch_size)
                     ],
                     dim=0,
                 )
@@ -171,7 +179,7 @@ class FinufftType1(torch.autograd.Function):
                             output_shape,
                             finufftkwargs,
                         )
-                        for i in range(points.shape[0])
+                        for i in range(info.batch_size)
                     ],
                     dim=0,
                 )
@@ -204,12 +212,13 @@ class FinufftType1(torch.autograd.Function):
         finufftkwargs = ctx.finufftkwargs
 
         points, values = ctx.saved_tensors
+        points = torch.atleast_2d(points)
+
         device = points.device
+        ndim = points.shape[0]
 
         grads_points = None
         grad_values = None
-
-        ndim = points.shape[0]
 
         nufft_func = get_nufft_func(ndim, 2, device.type)
 
@@ -218,34 +227,30 @@ class FinufftType1(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # wrt points
-            batching = len(values.shape) == 2
-            if batching:
-                coord_ramps = coordinate_ramps(grad_output.shape[-ndim:], device)
-                batched_grad_output = grad_output[:, newaxis]
-                ramped_grad_output = (
-                    coord_ramps * batched_grad_output * 1j * _i_sign
-                ).reshape(-1, *grad_output.shape[-ndim:])
-            else:
-                coord_ramps = coordinate_ramps(grad_output.shape, device)
-                batched_grad_output = grad_output[newaxis]
-                # we can't batch in 1d case so we squeeze and fix up the ouput later
-                ramped_grad_output = (
-                    coord_ramps * batched_grad_output * 1j * _i_sign
-                ).squeeze()
-
-            backprop_ramp = nufft_func(
-                *points, ramped_grad_output, isign=_i_sign, **finufftkwargs
+            batching = len(values.shape) > 1
+            shape = grad_output.shape[-ndim:]
+            coord_ramps = coordinate_ramps(shape, device)
+            nbatch = int(
+                torch.prod(torch.tensor(values.shape[:-1], dtype=torch.int)).item()
             )
 
             if batching:
-                nbatch = values.shape[0]
-                grads_points = (
-                    backprop_ramp.reshape(nbatch, ndim, -1).conj() * values[:, newaxis]
-                ).real.sum(
-                    dim=0
-                )  # sum over batching dimension
+                batched_grad_output = grad_output[:, newaxis]
+                batched_values = values[:, newaxis]
             else:
-                grads_points = torch.atleast_2d(backprop_ramp.conj() * values).real
+                batched_grad_output = grad_output[newaxis]
+                batched_values = values[newaxis]
+
+            ramped_grad_output = (
+                coord_ramps * batched_grad_output * 1j * _i_sign
+            ).reshape(-1, *shape)
+            backprop_ramp = nufft_func(
+                *points, ramped_grad_output.squeeze(), isign=_i_sign, **finufftkwargs
+            ).conj()
+
+            grads_points = (
+                backprop_ramp.reshape(nbatch, ndim, -1) * batched_values
+            ).real.sum(dim=0)
 
         if ctx.needs_input_grad[1]:
             grad_values = nufft_func(
@@ -334,23 +339,27 @@ class FinufftType2(torch.autograd.Function):
         if finufftkwargs is None:
             finufftkwargs = dict()
         else:
-            finufftkwargs = {k: v for k, v in finufftkwargs.items()}
+            finufftkwargs = finufftkwargs.copy()
 
         finufftkwargs.setdefault("isign", FinufftType2.ISIGN_DEFAULT)
 
         modeord = finufftkwargs.pop("modeord", FinufftType2.MODEORD_DEFAULT)
 
         points = torch.atleast_2d(points)
+        ndim = points.shape[0]
+        npoints = points.shape[1]
         if modeord:
-            targets = torch.fft.fftshift(targets, dim=tuple(range(-points.shape[0], 0)))
+            targets = torch.fft.fftshift(targets, dim=tuple(range(-ndim, 0)))
 
-        nufft_func = get_nufft_func(points.shape[0], 2, points.device.type)
-
+        nufft_func = get_nufft_func(ndim, 2, points.device.type)
+        batch_dims = targets.shape[:-ndim]
+        shape = targets.shape[-ndim:]
         finufft_out = nufft_func(
             *points,
-            targets,
+            targets.reshape(-1, *shape).squeeze(),
             **finufftkwargs,
         )
+        finufft_out = finufft_out.reshape(*batch_dims, npoints)
 
         return finufft_out
 
@@ -369,6 +378,7 @@ class FinufftType2(torch.autograd.Function):
 
         if batch_points is not None:
             # need a for-loop here
+            # potential opportunity for CUDA streams
             points = points.movedim(batch_points, 0)
             if batch_targets is not None:
                 output = torch.stack(
@@ -378,7 +388,7 @@ class FinufftType2(torch.autograd.Function):
                             targets[i],  # inner product
                             finufftkwargs,
                         )
-                        for i in range(points.shape[0])
+                        for i in range(info.batch_size)
                     ],
                     dim=0,
                 )
@@ -390,7 +400,7 @@ class FinufftType2(torch.autograd.Function):
                             targets,
                             finufftkwargs,
                         )
-                        for i in range(points.shape[0])
+                        for i in range(info.batch_size)
                     ],
                     dim=0,
                 )
@@ -423,12 +433,15 @@ class FinufftType2(torch.autograd.Function):
         finufftkwargs = ctx.finufftkwargs
 
         points, targets = ctx.saved_tensors
+        points = torch.atleast_2d(points)
         device = points.device
-
-        grad_points = grad_targets = None
         ndim = points.shape[0]
 
+        grad_points = None
+        grad_targets = None
+
         batching = len(targets.shape) != ndim
+        shape = targets.shape[-ndim:]
 
         # TODO this was also computed in forward
         if any(ctx.needs_input_grad) and _mode_ordering:
@@ -436,16 +449,20 @@ class FinufftType2(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # wrt. points
+            batch_shapes = targets.shape[:-ndim]
+            coord_ramps = coordinate_ramps(shape, device)
+            nbatch = int(torch.prod(torch.tensor(batch_shapes, dtype=torch.int)).item())
 
             if batching:
-                coord_ramps = coordinate_ramps(targets.shape[-ndim:], device)
-                ramped_targets = (
-                    coord_ramps * targets[:, newaxis] * 1j * _i_sign
-                ).reshape(-1, *targets.shape[-ndim:])
-
+                batched_targets = targets[:, newaxis]
+                batched_outputs = grad_output[:, newaxis]
             else:
-                coord_ramps = coordinate_ramps(targets.shape, device=device)
-                ramped_targets = coord_ramps * targets[newaxis] * 1j * _i_sign
+                batched_targets = targets[newaxis]
+                batched_outputs = grad_output[newaxis]
+
+            ramped_targets = (coord_ramps * batched_targets * 1j * _i_sign).reshape(
+                -1, *shape
+            )
 
             nufft_func = get_nufft_func(ndim, 2, points.device.type)
 
@@ -456,27 +473,18 @@ class FinufftType2(torch.autograd.Function):
                 **finufftkwargs,
             ).conj()  # Why can't this be replaced with a flipped isign
 
-            if batching:
-                nbatch = targets.shape[0]
-                grad_points = (
-                    grad_points.reshape(nbatch, ndim, -1) * grad_output[:, newaxis]
-                ).real.sum(dim=0)
-            else:
-                grad_points = torch.atleast_2d(grad_points * grad_output).real
+            grad_points = (
+                grad_points.reshape(nbatch, ndim, -1) * batched_outputs
+            ).real.sum(dim=0)
 
         if ctx.needs_input_grad[1]:
             # wrt. targets
             nufft_func = get_nufft_func(ndim, 1, points.device.type)
 
-            if batching:
-                output_shape = targets.shape[1:]
-            else:
-                output_shape = targets.shape
-
             grad_targets = nufft_func(
                 *points,
                 grad_output,
-                output_shape,
+                shape,
                 isign=-_i_sign,
                 **finufftkwargs,
             )

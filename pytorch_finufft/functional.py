@@ -76,9 +76,30 @@ def coordinate_ramps(shape, device):
 
 
 class FinufftType1(torch.autograd.Function):
+    ISIGN_DEFAULT = -1  # note: FINUFFT default is 1
+    MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
+
+    @staticmethod
+    def setup_context(  # type: ignore[override]
+        ctx: Any,
+        inputs: Tuple[
+            torch.Tensor, torch.Tensor, Any, Optional[Dict[str, Union[int, float]]]
+        ],
+        output: Any,
+    ) -> None:
+        points, values, _, finufftkwargs = inputs
+        ctx.save_for_backward(points, values)
+
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = finufftkwargs.copy()
+        ctx.isign = finufftkwargs.pop("isign", FinufftType1.ISIGN_DEFAULT)
+        ctx.mode_ordering = finufftkwargs.pop("modeord", FinufftType1.MODEORD_DEFAULT)
+        ctx.finufftkwargs = finufftkwargs
+
     @staticmethod
     def forward(  # type: ignore[override]
-        ctx: Any,
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
@@ -95,25 +116,19 @@ class FinufftType1(torch.autograd.Function):
         ndim = points.shape[0]
         checks.check_output_shape(ndim, output_shape)
 
-        ctx.save_for_backward(points, values)
-
         if finufftkwargs is None:
-            finufftkwargs = {}
+            finufftkwargs = dict()
         else:  # copy to avoid mutating caller's dictionary
             finufftkwargs = {k: v for k, v in finufftkwargs.items()}
-        ctx.isign = finufftkwargs.pop("isign", -1)  # note: FINUFFT default is 1
-        ctx.mode_ordering = finufftkwargs.pop(
-            "modeord", 1
-        )  # note: FINUFFT default is 0
-        ctx.finufftkwargs = finufftkwargs
+
+        finufftkwargs.setdefault("isign", FinufftType1.ISIGN_DEFAULT)
+        # pop because cufinufft doesn't support modeord
+        modeord = finufftkwargs.pop("modeord", FinufftType1.MODEORD_DEFAULT)
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
-        finufft_out = nufft_func(
-            *points, values, output_shape, isign=ctx.isign, **ctx.finufftkwargs
-        )
+        finufft_out = nufft_func(*points, values, output_shape, **finufftkwargs)
 
-        # because modeord is missing from cufinufft
-        if ctx.mode_ordering:
+        if modeord:
             finufft_out = torch.fft.ifftshift(finufft_out)
 
         return finufft_out
@@ -190,9 +205,29 @@ class FinufftType2(torch.autograd.Function):
     FINUFFT 2D problem type 2
     """
 
+    ISIGN_DEFAULT = -1  # note: FINUFFT default is -1
+    MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
+
+    @staticmethod
+    def setup_context(  # type: ignore[override]
+        ctx: Any,
+        inputs: Tuple[
+            torch.Tensor, torch.Tensor, Optional[Dict[str, Union[int, float]]]
+        ],
+        output: Any,
+    ) -> None:
+        points, targets, finufftkwargs = inputs
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = finufftkwargs.copy()
+        ctx.save_for_backward(points, targets)
+        ctx.isign = finufftkwargs.pop("isign", FinufftType2.ISIGN_DEFAULT)
+        ctx.mode_ordering = finufftkwargs.pop("modeord", FinufftType2.MODEORD_DEFAULT)
+        ctx.finufftkwargs = finufftkwargs
+
     @staticmethod
     def forward(  # type: ignore[override]
-        ctx: Any,
         points: torch.Tensor,
         targets: torch.Tensor,
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
@@ -233,30 +268,22 @@ class FinufftType2(torch.autograd.Function):
 
         if finufftkwargs is None:
             finufftkwargs = dict()
-        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
-        _mode_ordering = finufftkwargs.pop(
-            "modeord", 1
-        )  # not finufft default, but corresponds to pytorch default
-        _i_sign = finufftkwargs.pop(
-            "isign", -1
-        )  # isign=-1 is finufft default for type 2
+        else:
+            finufftkwargs = {k: v for k, v in finufftkwargs.items()}
+
+        finufftkwargs.setdefault("isign", FinufftType2.ISIGN_DEFAULT)
+
+        modeord = finufftkwargs.pop("modeord", FinufftType2.MODEORD_DEFAULT)
 
         points = torch.atleast_2d(points)
-        if _mode_ordering:
+        if modeord:
             targets = torch.fft.fftshift(targets)
-
-        ctx.save_for_backward(points, targets)
-
-        ctx.isign = _i_sign
-        ctx.mode_ordering = _mode_ordering
-        ctx.finufftkwargs = finufftkwargs
 
         nufft_func = get_nufft_func(points.shape[0], 2, points.device.type)
 
         finufft_out = nufft_func(
             *points,
             targets,
-            isign=_i_sign,
             **finufftkwargs,
         )
 
@@ -290,6 +317,10 @@ class FinufftType2(torch.autograd.Function):
 
         grad_points = grad_targets = None
         ndim = points.shape[0]
+
+        # TODO this was also computed in forward
+        if any(ctx.needs_input_grad) and _mode_ordering:
+            targets = torch.fft.fftshift(targets)
 
         if ctx.needs_input_grad[0]:
             coord_ramps = coordinate_ramps(targets.shape, device=device)

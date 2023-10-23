@@ -48,11 +48,6 @@ def check_sizes_t1(values: torch.Tensor, points: torch.Tensor) -> None:
     Checks that values and points are of the same length.
     This is used in type1.
     """
-    if len(values.shape) not in (1, 2):
-        raise ValueError(
-            "values must be a 1d tensor or a 2d tensor with batch dimension 0"
-        )
-
     n_values = values.shape[-1]
 
     if len(points.shape) == 1:

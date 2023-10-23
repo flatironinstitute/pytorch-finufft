@@ -222,43 +222,46 @@ class FinufftType1(torch.autograd.Function):
 
         nufft_func = get_nufft_func(ndim, 2, device.type)
 
-        if any(ctx.needs_input_grad) and _mode_ordering:
-            grad_output = torch.fft.fftshift(grad_output, dim=tuple(range(-ndim, 0)))
+        if any(ctx.needs_input_grad):
+            if _mode_ordering:
+                grad_output = torch.fft.fftshift(
+                    grad_output, dim=tuple(range(-ndim, 0))
+                )
+
+            # group together batched dimensions, if any
+            shape = grad_output.shape[-ndim:]
+            batch_dims = grad_output.shape[:-ndim]
+            batched_grad_output = grad_output.reshape(-1, 1, *shape)
+            nbatch = batched_grad_output.shape[0]
 
         if ctx.needs_input_grad[0]:
             # wrt points
-            batching = len(values.shape) > 1
-            shape = grad_output.shape[-ndim:]
-            coord_ramps = coordinate_ramps(shape, device)
-            nbatch = int(
-                torch.prod(torch.tensor(values.shape[:-1], dtype=torch.int)).item()
-            )
+            coord_ramps = coordinate_ramps(shape, device)[newaxis]
 
-            if batching:
-                batched_grad_output = grad_output[:, newaxis]
-                batched_values = values[:, newaxis]
-            else:
-                batched_grad_output = grad_output[newaxis]
-                batched_values = values[newaxis]
+            # nbatch x ndims x ...
+            batched_values = values.reshape(nbatch, 1, values.shape[-1])
 
             ramped_grad_output = (
-                coord_ramps * batched_grad_output * 1j * _i_sign
-            ).reshape(-1, *shape)
-            backprop_ramp = nufft_func(
-                *points, ramped_grad_output.squeeze(), isign=_i_sign, **finufftkwargs
-            ).conj()
+                (coord_ramps * batched_grad_output * 1j * _i_sign)
+                .reshape(-1, *shape)
+                .squeeze()
+            )
 
-            grads_points = (
-                backprop_ramp.reshape(nbatch, ndim, -1) * batched_values
-            ).real.sum(dim=0)
+            backprop_ramp = (
+                nufft_func(*points, ramped_grad_output, isign=_i_sign, **finufftkwargs)
+                .conj()
+                .reshape(nbatch, ndim, -1)
+            )
+
+            grads_points = (backprop_ramp * batched_values).real.sum(dim=0)
 
         if ctx.needs_input_grad[1]:
             grad_values = nufft_func(
                 *points,
-                grad_output,
+                grad_output.squeeze(),
                 isign=_i_sign,
                 **finufftkwargs,
-            )
+            ).reshape(*batch_dims, -1)
 
         return (
             grads_points,
@@ -522,7 +525,9 @@ def finufft_type1(
         DxN tensor of locations of the non-uniform points.
         Points must lie in the range ``[-3pi, 3pi]``.
     values : torch.Tensor
-        Length N complex-valued tensor of values at the non-uniform points
+        Complex-valued tensor of values at the non-uniform points.
+        All dimensions except the final dimension are treated as batch
+        dimensions. The final dimension must have size ``N``.
     output_shape : int | tuple(int, ...)
         Requested output shape of Fourier modes. Must be a tuple of length D or
         an integer (1D only).

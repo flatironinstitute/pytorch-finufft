@@ -149,18 +149,32 @@ class FinufftType1(torch.autograd.Function):
         if batch_points is not None:
             # need a for-loop here
             points = points.movedim(batch_points, 0)
-            output = torch.stack(
-                [
-                    FinufftType1.apply(
-                        points[i],
-                        values,
-                        output_shape,
-                        finufftkwargs,
-                    )
-                    for i in range(points.shape[0])
-                ],
-                dim=0,
-            )
+            if batch_values is not None:
+                output = torch.stack(
+                    [
+                        FinufftType1.apply(
+                            points[i],
+                            values[i],
+                            output_shape,
+                            finufftkwargs,
+                        )
+                        for i in range(points.shape[0])
+                    ],
+                    dim=0,
+                )
+            else:
+                output = torch.stack(
+                    [
+                        FinufftType1.apply(
+                            points[i],
+                            values,
+                            output_shape,
+                            finufftkwargs,
+                        )
+                        for i in range(points.shape[0])
+                    ],
+                    dim=0,
+                )
         else:
             output = FinufftType1.apply(points, values, output_shape, finufftkwargs)
 
@@ -356,17 +370,30 @@ class FinufftType2(torch.autograd.Function):
         if batch_points is not None:
             # need a for-loop here
             points = points.movedim(batch_points, 0)
-            output = torch.stack(
-                [
-                    FinufftType2.apply(
-                        points[i],
-                        targets,
-                        finufftkwargs,
-                    )
-                    for i in range(points.shape[0])
-                ],
-                dim=0,
-            )
+            if batch_targets is not None:
+                output = torch.stack(
+                    [
+                        FinufftType2.apply(
+                            points[i],
+                            targets[i],  # inner product
+                            finufftkwargs,
+                        )
+                        for i in range(points.shape[0])
+                    ],
+                    dim=0,
+                )
+            else:
+                output = torch.stack(
+                    [
+                        FinufftType2.apply(
+                            points[i],
+                            targets,
+                            finufftkwargs,
+                        )
+                        for i in range(points.shape[0])
+                    ],
+                    dim=0,
+                )
         else:
             output = FinufftType2.apply(points, targets, finufftkwargs)
 

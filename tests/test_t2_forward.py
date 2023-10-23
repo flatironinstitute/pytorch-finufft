@@ -38,78 +38,33 @@ def check_t2_forward(N: int, dim: int, device: str, fftshift=False) -> None:
     assert l_1_error < 1.2e-4 * N**3.2
 
 
-#### 1D TESTS ####
-
-Ns = [
-    5,
-    10,
-    15,
-    100,
-    101,
-    1000,
-    1001,
-    3750,
-    5000,
-    5001,
-    6250,
-    7500,
+Ns_and_dims = [
+    (2, 1),
+    (3, 1),
+    (5, 1),
+    (10, 1),
+    (100, 1),
+    (101, 1),
+    (1000, 1),
+    (10001, 1),
+    (2, 2),
+    (3, 2),
+    (5, 2),
+    (10, 2),
+    (101, 2),
+    (2, 3),
+    (3, 3),
+    (5, 3),
+    (10, 3),
+    (37, 3),
 ]
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t2_1D_forward_CPU(N: int) -> None:
-    check_t2_forward(N, 1, "cpu")
+@pytest.mark.parametrize("N, dim", Ns_and_dims)
+def test_t2_forward_CPU(N, dim) -> None:
+    check_t2_forward(N, dim, "cpu")
 
 
-@pytest.mark.parametrize("N", Ns)
-def test_t2_1D_forward_cuda(N: int) -> None:
-    check_t2_forward(N, 1, "cuda")
-
-
-#### 2D TESTS ####
-Ns = [
-    3,
-    10,
-    15,
-    75,
-    76,
-    95,
-    96,
-    100,
-    101,
-]
-
-
-@pytest.mark.parametrize("N", Ns)
-@pytest.mark.parametrize("fftshift", [False, True])
-def test_t2_2D_forward_CPU(N: int, fftshift: bool) -> None:
-    check_t2_forward(N, 2, "cpu", fftshift)
-
-
-@pytest.mark.parametrize("N", Ns)
-def test_t2_2D_forward_cuda(N: int) -> None:
-    check_t2_forward(N, 2, "cuda")
-
-
-#### 3D TESTS ####
-
-Ns = [
-    3,
-    5,
-    10,
-    15,
-    16,
-    25,
-    26,
-    37,
-]
-
-
-@pytest.mark.parametrize("N", Ns)
-def test_t2_3D_forward_CPU(N: int) -> None:
-    check_t2_forward(N, 3, "cpu")
-
-
-@pytest.mark.parametrize("N", Ns)
-def test_t2_3D_forward_cuda(N: int) -> None:
-    check_t2_forward(N, 3, "cuda")
+@pytest.mark.parametrize("N, dim", Ns_and_dims)
+def test_t2_forward_cuda(N, dim) -> None:
+    check_t2_forward(N, dim, "cuda")

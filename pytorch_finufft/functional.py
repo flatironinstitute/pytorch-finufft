@@ -204,16 +204,34 @@ class FinufftType1(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # wrt points
-            coord_ramps = coordinate_ramps(grad_output.shape, device)
+            batching = len(values.shape) == 2
+            if batching:
+                coord_ramps = coordinate_ramps(grad_output.shape[-ndim:], device)
+                batched_grad_output = grad_output[:, newaxis]
+                ramped_grad_output = (
+                    coord_ramps * batched_grad_output * 1j * _i_sign
+                ).reshape(-1, *grad_output.shape[-ndim:])
+            else:
+                coord_ramps = coordinate_ramps(grad_output.shape, device)
+                batched_grad_output = grad_output[newaxis]
+                # we can't batch in 1d case so we squeeze and fix up the ouput later
+                ramped_grad_output = (
+                    coord_ramps * batched_grad_output * 1j * _i_sign
+                ).squeeze()
 
-            # we can't batch in 1d case so we squeeze and fix up the ouput later
-            ramped_grad_output = (
-                coord_ramps * grad_output[newaxis] * 1j * _i_sign
-            ).squeeze()
             backprop_ramp = nufft_func(
                 *points, ramped_grad_output, isign=_i_sign, **finufftkwargs
             )
-            grads_points = torch.atleast_2d((backprop_ramp.conj() * values).real)
+
+            if batching:
+                nbatch = values.shape[0]
+                grads_points = (
+                    backprop_ramp.reshape(nbatch, ndim, -1).conj() * values[:, newaxis]
+                ).real.sum(
+                    dim=0
+                )  # sum over batching dimension
+            else:
+                grads_points = torch.atleast_2d(backprop_ramp.conj() * values).real
 
         if ctx.needs_input_grad[1]:
             grad_values = nufft_func(

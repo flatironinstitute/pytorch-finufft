@@ -73,6 +73,20 @@ def test_t1_backward_CPU_values(output_shape, N, fftshift, isign) -> None:
     check_t1_backward(N, output_shape, fftshift, isign, "cpu", False)
 
 
+@pytest.mark.parametrize("output_shape, N", shapes_and_Ns)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_backward_cuda_points(output_shape, N, fftshift, isign) -> None:
+    check_t1_backward(N, output_shape, fftshift, isign, "cuda", True)
+
+
+@pytest.mark.parametrize("output_shape, N", shapes_and_Ns)
+@pytest.mark.parametrize("fftshift", [False, True])
+@pytest.mark.parametrize("isign", [-1, 1])
+def test_t1_backward_cuda_values(output_shape, N, fftshift, isign) -> None:
+    check_t1_backward(N, output_shape, fftshift, isign, "cuda", False)
+
+
 # #### 1D TESTS ####
 # Ns = [
 #     5,

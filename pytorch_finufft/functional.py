@@ -129,9 +129,42 @@ class FinufftType1(torch.autograd.Function):
         finufft_out = nufft_func(*points, values, output_shape, **finufftkwargs)
 
         if modeord:
-            finufft_out = torch.fft.ifftshift(finufft_out)
+            finufft_out = torch.fft.ifftshift(finufft_out, dim=tuple(range(-ndim, 0)))
 
         return finufft_out
+
+    @staticmethod
+    def vmap(  # type: ignore[override]
+        info: Any,
+        in_dims: Tuple[Optional[int], ...],
+        points: torch.Tensor,
+        values: torch.Tensor,
+        output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> Tuple[torch.Tensor, int]:
+        batch_points, batch_values, *_ = in_dims
+        if batch_values is not None:
+            values = values.movedim(batch_values, 0)
+
+        if batch_points is not None:
+            # need a for-loop here
+            points = points.movedim(batch_points, 0)
+            output = torch.stack(
+                [
+                    FinufftType1.apply(
+                        points[i],
+                        values,
+                        output_shape,
+                        finufftkwargs,
+                    )
+                    for i in range(points.shape[0])
+                ],
+                dim=0,
+            )
+        else:
+            output = FinufftType1.apply(points, values, output_shape, finufftkwargs)
+
+        return output, 0
 
     @staticmethod
     def backward(  # type: ignore[override]
@@ -167,7 +200,7 @@ class FinufftType1(torch.autograd.Function):
         nufft_func = get_nufft_func(ndim, 2, device.type)
 
         if any(ctx.needs_input_grad) and _mode_ordering:
-            grad_output = torch.fft.fftshift(grad_output)
+            grad_output = torch.fft.fftshift(grad_output, dim=tuple(range(-ndim, 0)))
 
         if ctx.needs_input_grad[0]:
             # wrt points

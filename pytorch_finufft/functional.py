@@ -401,13 +401,25 @@ class FinufftType2(torch.autograd.Function):
         grad_points = grad_targets = None
         ndim = points.shape[0]
 
+        batching = len(targets.shape) != ndim
+
         # TODO this was also computed in forward
         if any(ctx.needs_input_grad) and _mode_ordering:
-            targets = torch.fft.fftshift(targets)
+            targets = torch.fft.fftshift(targets, dim=tuple(range(-ndim, 0)))
 
         if ctx.needs_input_grad[0]:
-            coord_ramps = coordinate_ramps(targets.shape, device=device)
-            ramped_targets = coord_ramps * targets[newaxis] * 1j * _i_sign
+            # wrt. points
+
+            if batching:
+                coord_ramps = coordinate_ramps(targets.shape[-ndim:], device)
+                ramped_targets = (
+                    coord_ramps * targets[:, newaxis] * 1j * _i_sign
+                ).reshape(-1, *targets.shape[-ndim:])
+
+            else:
+                coord_ramps = coordinate_ramps(targets.shape, device=device)
+                ramped_targets = coord_ramps * targets[newaxis] * 1j * _i_sign
+
             nufft_func = get_nufft_func(ndim, 2, points.device.type)
 
             grad_points = nufft_func(
@@ -417,23 +429,35 @@ class FinufftType2(torch.autograd.Function):
                 **finufftkwargs,
             ).conj()  # Why can't this be replaced with a flipped isign
 
-            grad_points = grad_points * grad_output
-            grad_points = torch.atleast_2d(grad_points.real)
+            if batching:
+                nbatch = targets.shape[0]
+                grad_points = (
+                    grad_points.reshape(nbatch, ndim, -1) * grad_output[:, newaxis]
+                ).real.sum(dim=0)
+            else:
+                grad_points = torch.atleast_2d(grad_points * grad_output).real
 
         if ctx.needs_input_grad[1]:
             # wrt. targets
             nufft_func = get_nufft_func(ndim, 1, points.device.type)
 
+            if batching:
+                output_shape = targets.shape[1:]
+            else:
+                output_shape = targets.shape
+
             grad_targets = nufft_func(
                 *points,
                 grad_output,
-                targets.shape,
+                output_shape,
                 isign=-_i_sign,
                 **finufftkwargs,
             )
 
             if _mode_ordering:
-                grad_targets = torch.fft.ifftshift(grad_targets)
+                grad_targets = torch.fft.ifftshift(
+                    grad_targets, dim=tuple(range(-ndim, 0))
+                )
 
         return (
             grad_points,

@@ -10,7 +10,7 @@ API Reference
 Inverse Transform helper functions
 ----------------------------------
 
-Both of these functions are provided merely as helpers, they call
+Both of these functions are provided merely as helpers. They call
 the above functions just with different default arguments and scaling
 to provide the equivalent of an ifft function.
 

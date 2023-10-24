@@ -97,8 +97,8 @@ def check_sizes_t2(targets: torch.Tensor, points: torch.Tensor) -> None:
     if points_dim not in {1, 2, 3}:
         raise ValueError(f"Points can be at most 3d, got {points_dim} instead")
 
-    if targets_dim != points_dim and targets_dim != points_dim + 1:
+    if targets_dim < points_dim:
         raise ValueError(
-            f"For type 2 {points_dim}d FINUFFT, targets must be a {points_dim}d tensor"
-            " or a {points_dim + 1}d tensor with batch dimension 0"
+            f"For type 2 {points_dim}d FINUFFT, targets must be at "
+            f"least a {points_dim}d tensor"
         )

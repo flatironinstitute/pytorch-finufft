@@ -267,7 +267,7 @@ def test_t2_mismatch_dims() -> None:
     targets = torch.randn(*g[0].shape[:-1], dtype=torch.complex128)
 
     with pytest.raises(
-        ValueError, match="For type 2 3d FINUFFT, targets must be a 3d tensor"
+        ValueError, match="For type 2 3d FINUFFT, targets must be at least a 3d tensor"
     ):
         pytorch_finufft.functional.finufft_type2(points, targets)
 

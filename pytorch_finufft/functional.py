@@ -72,22 +72,55 @@ def coordinate_ramps(shape, device):
         )
     )
 
-    return coord_ramps
+    return coord_ramps[newaxis]
+
+
+def batch_fftshift(x: torch.Tensor, n_shifted_dims: int) -> torch.Tensor:
+    """fftshift only over the final n_shifted_dims dimensions"""
+    out: torch.Tensor = torch.fft.fftshift(x, dim=tuple(range(-n_shifted_dims, 0)))
+    return out
+
+
+def batch_ifftshift(x: torch.Tensor, n_shifted_dims: int) -> torch.Tensor:
+    """ifftshift only over the final n_shifted_dims dimensions"""
+    out: torch.Tensor = torch.fft.ifftshift(x, dim=tuple(range(-n_shifted_dims, 0)))
+    return out
 
 
 class FinufftType1(torch.autograd.Function):
+    """
+    FINUFFT problem type 1
+    """
+
+    ISIGN_DEFAULT = -1  # note: FINUFFT default is 1
+    MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
+
+    @staticmethod
+    def setup_context(  # type: ignore[override]
+        ctx: Any,
+        inputs: Tuple[
+            torch.Tensor, torch.Tensor, Any, Optional[Dict[str, Union[int, float]]]
+        ],
+        output: Any,
+    ) -> None:
+        points, values, _, finufftkwargs = inputs
+        ctx.save_for_backward(points, values)
+
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = finufftkwargs.copy()
+        ctx.isign = finufftkwargs.pop("isign", FinufftType1.ISIGN_DEFAULT)
+        ctx.mode_ordering = finufftkwargs.pop("modeord", FinufftType1.MODEORD_DEFAULT)
+        ctx.finufftkwargs = finufftkwargs
+
     @staticmethod
     def forward(  # type: ignore[override]
-        ctx: Any,
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
     ) -> torch.Tensor:
-        """
-        Evaluates the Type 1 NUFFT on the inputs.
-        """
-
         checks.check_devices(values, points)
         checks.check_dtypes(values, points, "Values")
         checks.check_sizes_t1(values, points)
@@ -95,85 +128,135 @@ class FinufftType1(torch.autograd.Function):
         ndim = points.shape[0]
         checks.check_output_shape(ndim, output_shape)
 
-        ctx.save_for_backward(points, values)
-
         if finufftkwargs is None:
-            finufftkwargs = {}
+            finufftkwargs = dict()
         else:  # copy to avoid mutating caller's dictionary
-            finufftkwargs = {k: v for k, v in finufftkwargs.items()}
-        ctx.isign = finufftkwargs.pop("isign", -1)  # note: FINUFFT default is 1
-        ctx.mode_ordering = finufftkwargs.pop(
-            "modeord", 1
-        )  # note: FINUFFT default is 0
-        ctx.finufftkwargs = finufftkwargs
+            finufftkwargs = finufftkwargs.copy()
+
+        finufftkwargs.setdefault("isign", FinufftType1.ISIGN_DEFAULT)
+        # pop because cufinufft doesn't support modeord
+        modeord = finufftkwargs.pop("modeord", FinufftType1.MODEORD_DEFAULT)
 
         nufft_func = get_nufft_func(ndim, 1, points.device.type)
-        finufft_out = nufft_func(
-            *points, values, output_shape, isign=ctx.isign, **ctx.finufftkwargs
-        )
 
-        # because modeord is missing from cufinufft
-        if ctx.mode_ordering:
-            finufft_out = torch.fft.ifftshift(finufft_out)
+        batch_dims = values.shape[:-1]
+        finufft_out = nufft_func(
+            *points,
+            values.reshape(-1, values.shape[-1]).squeeze(),
+            output_shape,
+            **finufftkwargs,
+        )
+        finufft_out = finufft_out.reshape(*batch_dims, *output_shape)
+
+        if modeord:
+            finufft_out = batch_ifftshift(finufft_out, ndim)
 
         return finufft_out
+
+    @staticmethod
+    def vmap(  # type: ignore[override]
+        info: Any,
+        in_dims: Tuple[Optional[int], ...],
+        points: torch.Tensor,
+        values: torch.Tensor,
+        output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> Tuple[torch.Tensor, int]:
+        batch_points, batch_values, *_ = in_dims
+        if batch_values is not None:
+            values = values.movedim(batch_values, 0)
+
+        if batch_points is not None:
+            # need a for-loop here
+            points = points.movedim(batch_points, 0)
+            if batch_values is not None:
+                output = torch.stack(
+                    [
+                        FinufftType1.apply(
+                            points[i],
+                            values[i],
+                            output_shape,
+                            finufftkwargs,
+                        )
+                        for i in range(info.batch_size)
+                    ],
+                    dim=0,
+                )
+            else:
+                output = torch.stack(
+                    [
+                        FinufftType1.apply(
+                            points[i],
+                            values,
+                            output_shape,
+                            finufftkwargs,
+                        )
+                        for i in range(info.batch_size)
+                    ],
+                    dim=0,
+                )
+        else:
+            output = FinufftType1.apply(points, values, output_shape, finufftkwargs)
+
+        return output, 0
 
     @staticmethod
     def backward(  # type: ignore[override]
         ctx: Any, grad_output: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, None], ...]:
-        """
-         Implements derivatives wrt. each argument in the forward method.
-
-         Parameters
-         ----------
-         ctx : Any
-             Pytorch context object.
-         grad_output : torch.Tensor
-             Backpass gradient output
-
-         Returns
-         -------
-        Tuple[Union[torch.Tensor, None], ...]
-             A tuple of derivatives wrt. each argument in the forward method
-        """
         _i_sign = -1 * ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
 
         points, values = ctx.saved_tensors
+        points = torch.atleast_2d(points)
+
         device = points.device
+        ndim = points.shape[0]
 
         grads_points = None
         grad_values = None
 
-        ndim = points.shape[0]
-
         nufft_func = get_nufft_func(ndim, 2, device.type)
 
-        if any(ctx.needs_input_grad) and _mode_ordering:
-            grad_output = torch.fft.fftshift(grad_output)
+        if any(ctx.needs_input_grad):
+            if _mode_ordering:
+                grad_output = batch_fftshift(grad_output, ndim)
+
+            # group together batched dimensions, if any
+            shape = grad_output.shape[-ndim:]
+            batch_dims = grad_output.shape[:-ndim]
+            batched_grad_output = grad_output.reshape(-1, 1, *shape)
+            nbatch = batched_grad_output.shape[0]
 
         if ctx.needs_input_grad[0]:
             # wrt points
-            coord_ramps = coordinate_ramps(grad_output.shape, device)
+            coord_ramps = coordinate_ramps(shape, device)
 
-            # we can't batch in 1d case so we squeeze and fix up the ouput later
+            # nbatch x ndims x ...
+            batched_values = values.reshape(nbatch, 1, values.shape[-1])
+
             ramped_grad_output = (
-                coord_ramps * grad_output[newaxis] * 1j * _i_sign
-            ).squeeze()
-            backprop_ramp = nufft_func(
-                *points, ramped_grad_output, isign=_i_sign, **finufftkwargs
+                (coord_ramps * batched_grad_output * 1j * _i_sign)
+                .reshape(-1, *shape)
+                .squeeze()
             )
-            grads_points = torch.atleast_2d((backprop_ramp.conj() * values).real)
+
+            backprop_ramp = (
+                nufft_func(*points, ramped_grad_output, isign=_i_sign, **finufftkwargs)
+                .conj()
+                .reshape(nbatch, ndim, -1)
+            )
+
+            grads_points = (backprop_ramp * batched_values).real.sum(dim=0)
 
         if ctx.needs_input_grad[1]:
             grad_values = nufft_func(
                 *points,
-                grad_output,
+                batched_grad_output.squeeze(),
                 isign=_i_sign,
                 **finufftkwargs,
-            )
+            ).reshape(*batch_dims, -1)
 
         return (
             grads_points,
@@ -187,124 +270,159 @@ class FinufftType1(torch.autograd.Function):
 
 class FinufftType2(torch.autograd.Function):
     """
-    FINUFFT 2D problem type 2
+    FINUFFT problem type 2
     """
+
+    ISIGN_DEFAULT = -1  # note: FINUFFT default is -1
+    MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
+
+    @staticmethod
+    def setup_context(  # type: ignore[override]
+        ctx: Any,
+        inputs: Tuple[
+            torch.Tensor, torch.Tensor, Optional[Dict[str, Union[int, float]]]
+        ],
+        output: Any,
+    ) -> None:
+        points, targets, finufftkwargs = inputs
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = finufftkwargs.copy()
+        ctx.save_for_backward(points, targets)
+        ctx.isign = finufftkwargs.pop("isign", FinufftType2.ISIGN_DEFAULT)
+        ctx.mode_ordering = finufftkwargs.pop("modeord", FinufftType2.MODEORD_DEFAULT)
+        ctx.finufftkwargs = finufftkwargs
 
     @staticmethod
     def forward(  # type: ignore[override]
-        ctx: Any,
         points: torch.Tensor,
         targets: torch.Tensor,
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
     ) -> torch.Tensor:
-        """
-        Evaluates the Type 2 NUFFT on the inputs.
-
-        NOTE: By default, the ordering is set to match that of Pytorch,
-         Numpy, and Scipy's FFT APIs. To match the mode ordering
-         native to FINUFFT, add {'modeord': 0} to finufftkwargs.
-
-        Parameters
-        ----------
-        ctx : Any
-            Pytorch context objecy
-        points : torch.Tensor, shape=(ndim, num_points)
-            The non-uniform points x
-        targets : torch.Tensor
-            The values on the input grid
-        out : Optional[torch.Tensor], optional
-            Array to take the result in-place, by default None
-        finufftkwargs : Dict[str, Union[int, float]]
-            Additional arguments will be passed into FINUFFT. See
-            https://finufft.readthedocs.io/en/latest/python.html.
-
-        Returns
-        -------
-        torch.Tensor
-            The Fourier transform of the targets grid evaluated at the points `points`
-
-        Raises
-        ------
-
-        """
         checks.check_devices(targets, points)
         checks.check_dtypes(targets, points, "Targets")
         checks.check_sizes_t2(targets, points)
 
         if finufftkwargs is None:
             finufftkwargs = dict()
-        finufftkwargs = {k: v for k, v in finufftkwargs.items()}
-        _mode_ordering = finufftkwargs.pop(
-            "modeord", 1
-        )  # not finufft default, but corresponds to pytorch default
-        _i_sign = finufftkwargs.pop(
-            "isign", -1
-        )  # isign=-1 is finufft default for type 2
+        else:
+            finufftkwargs = finufftkwargs.copy()
+
+        finufftkwargs.setdefault("isign", FinufftType2.ISIGN_DEFAULT)
+
+        modeord = finufftkwargs.pop("modeord", FinufftType2.MODEORD_DEFAULT)
 
         points = torch.atleast_2d(points)
-        if _mode_ordering:
-            targets = torch.fft.fftshift(targets)
+        ndim = points.shape[0]
+        npoints = points.shape[1]
+        if modeord:
+            targets = batch_fftshift(targets, ndim)
 
-        ctx.save_for_backward(points, targets)
-
-        ctx.isign = _i_sign
-        ctx.mode_ordering = _mode_ordering
-        ctx.finufftkwargs = finufftkwargs
-
-        nufft_func = get_nufft_func(points.shape[0], 2, points.device.type)
-
+        nufft_func = get_nufft_func(ndim, 2, points.device.type)
+        batch_dims = targets.shape[:-ndim]
+        shape = targets.shape[-ndim:]
         finufft_out = nufft_func(
             *points,
-            targets,
-            isign=_i_sign,
+            targets.reshape(-1, *shape).squeeze(),
             **finufftkwargs,
         )
+        finufft_out = finufft_out.reshape(*batch_dims, npoints)
 
         return finufft_out
+
+    @staticmethod
+    def vmap(  # type: ignore[override]
+        info: Any,
+        in_dims: Tuple[Optional[int], ...],
+        points: torch.Tensor,
+        targets: torch.Tensor,
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> Tuple[torch.Tensor, int]:
+        batch_points, batch_targets, *_ = in_dims
+
+        if batch_targets is not None:
+            targets = targets.movedim(batch_targets, 0)
+
+        if batch_points is not None:
+            # need a for-loop here
+            # potential opportunity for CUDA streams
+            points = points.movedim(batch_points, 0)
+            if batch_targets is not None:
+                output = torch.stack(
+                    [
+                        FinufftType2.apply(
+                            points[i],
+                            targets[i],  # inner product
+                            finufftkwargs,
+                        )
+                        for i in range(info.batch_size)
+                    ],
+                    dim=0,
+                )
+            else:
+                output = torch.stack(
+                    [
+                        FinufftType2.apply(
+                            points[i],
+                            targets,
+                            finufftkwargs,
+                        )
+                        for i in range(info.batch_size)
+                    ],
+                    dim=0,
+                )
+        else:
+            output = FinufftType2.apply(points, targets, finufftkwargs)
+
+        return output, 0
 
     @staticmethod
     def backward(  # type: ignore[override]
         ctx: Any, grad_output: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, None], Union[torch.Tensor, None], None, None, None,]:
-        """
-        Implements derivatives wrt. each argument in the forward method.
-
-        Parameters
-        ----------
-        ctx : Any
-            Pytorch context object
-        grad_output : torch.Tensor
-            Backpass gradient output.
-
-        Returns
-        -------
-        Tuple[ Union[torch.Tensor, None], ...]
-            A tuple of derivatives wrt. each argument in the forward method
-        """
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
 
         points, targets = ctx.saved_tensors
+        points = torch.atleast_2d(points)
         device = points.device
-
-        grad_points = grad_targets = None
         ndim = points.shape[0]
 
+        grad_points = None
+        grad_targets = None
+
+        if any(ctx.needs_input_grad):
+            if _mode_ordering:
+                # TODO this was also computed in forward
+                targets = batch_fftshift(targets, ndim)
+
+            batch_dims = targets.shape[:-ndim]
+            shape = targets.shape[-ndim:]
+            batched_targets = targets.reshape(-1, 1, *shape)
+            nbatch = batched_targets.shape[0]
+            batched_outputs = grad_output.reshape(nbatch, 1, grad_output.shape[-1])
+
         if ctx.needs_input_grad[0]:
-            coord_ramps = coordinate_ramps(targets.shape, device=device)
-            ramped_targets = coord_ramps * targets[newaxis] * 1j * _i_sign
+            # wrt. points
             nufft_func = get_nufft_func(ndim, 2, points.device.type)
 
-            grad_points = nufft_func(
-                *points,
-                ramped_targets.squeeze(),
-                isign=_i_sign,
-                **finufftkwargs,
-            ).conj()  # Why can't this be replaced with a flipped isign
+            coord_ramps = coordinate_ramps(shape, device)
 
-            grad_points = grad_points * grad_output
-            grad_points = torch.atleast_2d(grad_points.real)
+            ramped_targets = (
+                (coord_ramps * batched_targets * 1j * _i_sign)
+                .reshape(-1, *shape)
+                .squeeze()  # squeeze to work around finufft issue#367
+            )
+
+            backprop_ramp = (
+                nufft_func(*points, ramped_targets, isign=_i_sign, **finufftkwargs)
+                .conj()  # Why can't this `conj` be replaced with a flipped isign
+                .reshape(nbatch, ndim, -1)
+            )
+
+            grad_points = (backprop_ramp * batched_outputs).real.sum(dim=0)
 
         if ctx.needs_input_grad[1]:
             # wrt. targets
@@ -312,14 +430,14 @@ class FinufftType2(torch.autograd.Function):
 
             grad_targets = nufft_func(
                 *points,
-                grad_output,
-                targets.shape,
+                batched_outputs.squeeze(),
+                shape,
                 isign=-_i_sign,
                 **finufftkwargs,
-            )
+            ).reshape(*batch_dims, *shape)
 
             if _mode_ordering:
-                grad_targets = torch.fft.ifftshift(grad_targets)
+                grad_targets = batch_ifftshift(grad_targets, ndim)
 
         return (
             grad_points,
@@ -349,7 +467,9 @@ def finufft_type1(
         DxN tensor of locations of the non-uniform points.
         Points must lie in the range ``[-3pi, 3pi]``.
     values : torch.Tensor
-        Length N complex-valued tensor of values at the non-uniform points
+        Complex-valued tensor of values at the non-uniform points.
+        All dimensions except the final dimension are treated as batch
+        dimensions. The final dimension must have size ``N``.
     output_shape : int | tuple(int, ...)
         Requested output shape of Fourier modes. Must be a tuple of length D or
         an integer (1D only).
@@ -364,7 +484,7 @@ def finufft_type1(
     Returns
     -------
     torch.Tensor
-        Tensor with shape ``output_shape`` containing the Fourier
+        Tensor with shape ``*[batch], *output_shape`` containing the Fourier
         transform of the values.
     """
     res: torch.Tensor = FinufftType1.apply(points, values, output_shape, finufftkwargs)
@@ -389,7 +509,9 @@ def finufft_type2(
         DxN tensor of locations of the non-uniform points.
         Points must lie in the range ``[-3pi, 3pi]``.
     targets : torch.Tensor
-        D-dimensional complex-valued tensor of Fourier modes to evaluate at the points
+        Complex-valued tensor of Fourier modes to evaluate at the points.
+        The final D dimensions must contain the Fourier modes, and any
+        preceding dimensions are treated as batch dimensions.
     **finufftkwargs : int | float
         Additional keyword arguments are forwarded to the underlying
         FINUFFT functions. A few notable options are
@@ -401,7 +523,7 @@ def finufft_type2(
     Returns
     -------
     torch.Tensor
-        A DxN tensor of values at the non-uniform points.
+        A ``[batch]xDxN`` tensor of values at the non-uniform points.
     """
     res: torch.Tensor = FinufftType2.apply(points, targets, finufftkwargs)
     return res

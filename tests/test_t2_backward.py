@@ -7,7 +7,6 @@ from torch.autograd import gradcheck
 
 import pytorch_finufft
 
-torch.set_default_tensor_type(torch.DoubleTensor)
 torch.set_default_dtype(torch.float64)
 torch.manual_seed(1234)
 

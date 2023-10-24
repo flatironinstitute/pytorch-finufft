@@ -75,6 +75,18 @@ def coordinate_ramps(shape, device):
     return coord_ramps[newaxis]
 
 
+def batch_fftshift(x: torch.Tensor, n_shifted_dims: int) -> torch.Tensor:
+    """fftshift only over the final n_shifted_dims dimensions"""
+    out: torch.Tensor = torch.fft.fftshift(x, dim=tuple(range(-n_shifted_dims, 0)))
+    return out
+
+
+def batch_ifftshift(x: torch.Tensor, n_shifted_dims: int) -> torch.Tensor:
+    """ifftshift only over the final n_shifted_dims dimensions"""
+    out: torch.Tensor = torch.fft.ifftshift(x, dim=tuple(range(-n_shifted_dims, 0)))
+    return out
+
+
 class FinufftType1(torch.autograd.Function):
     """
     FINUFFT problem type 1
@@ -137,7 +149,7 @@ class FinufftType1(torch.autograd.Function):
         finufft_out = finufft_out.reshape(*batch_dims, *output_shape)
 
         if modeord:
-            finufft_out = torch.fft.ifftshift(finufft_out, dim=tuple(range(-ndim, 0)))
+            finufft_out = batch_ifftshift(finufft_out, ndim)
 
         return finufft_out
 
@@ -209,9 +221,7 @@ class FinufftType1(torch.autograd.Function):
 
         if any(ctx.needs_input_grad):
             if _mode_ordering:
-                grad_output = torch.fft.fftshift(
-                    grad_output, dim=tuple(range(-ndim, 0))
-                )
+                grad_output = batch_fftshift(grad_output, ndim)
 
             # group together batched dimensions, if any
             shape = grad_output.shape[-ndim:]
@@ -307,7 +317,7 @@ class FinufftType2(torch.autograd.Function):
         ndim = points.shape[0]
         npoints = points.shape[1]
         if modeord:
-            targets = torch.fft.fftshift(targets, dim=tuple(range(-ndim, 0)))
+            targets = batch_fftshift(targets, ndim)
 
         nufft_func = get_nufft_func(ndim, 2, points.device.type)
         batch_dims = targets.shape[:-ndim]
@@ -383,10 +393,10 @@ class FinufftType2(torch.autograd.Function):
         grad_points = None
         grad_targets = None
 
-        # TODO this was also computed in forward
         if any(ctx.needs_input_grad):
             if _mode_ordering:
-                targets = torch.fft.fftshift(targets, dim=tuple(range(-ndim, 0)))
+                # TODO this was also computed in forward
+                targets = batch_fftshift(targets, ndim)
 
             batch_dims = targets.shape[:-ndim]
             shape = targets.shape[-ndim:]
@@ -427,9 +437,7 @@ class FinufftType2(torch.autograd.Function):
             ).reshape(*batch_dims, *shape)
 
             if _mode_ordering:
-                grad_targets = torch.fft.ifftshift(
-                    grad_targets, dim=tuple(range(-ndim, 0))
-                )
+                grad_targets = batch_ifftshift(grad_targets, ndim)
 
         return (
             grad_points,

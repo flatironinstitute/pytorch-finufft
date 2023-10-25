@@ -543,7 +543,7 @@ def finuifft_type1(
         warnings.warn("finuifft_type1 recieved isign, which will be overwritten to 1")
     finufftkwargs["isign"] = 1
     res: torch.Tensor = finufft_type1(points, values, output_shape, **finufftkwargs)
-    res = res / res.numel()
+    res = res / torch.tensor(output_shape).prod()
     return res
 
 
@@ -560,5 +560,6 @@ def finuifft_type2(
         warnings.warn("finuifft_type2 recieved isign, which will be overwritten to 1")
     finufftkwargs["isign"] = 1
     res: torch.Tensor = finufft_type2(points, targets, **finufftkwargs)
-    res = res / res.numel()
+    ndim = torch.atleast_2d(points).shape[0]
+    res = res / torch.tensor(targets.shape[-ndim:]).prod()
     return res

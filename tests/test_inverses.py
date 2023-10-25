@@ -4,6 +4,15 @@ import torch
 
 import pytorch_finufft
 
+Ns = [
+    5,
+    10,
+    15,
+    100,
+]
+
+dims = [1, 2, 3]
+
 
 def check_t2_ifft_undoes_t1(N: int, dim: int, device: str) -> None:
     """
@@ -13,7 +22,8 @@ def check_t2_ifft_undoes_t1(N: int, dim: int, device: str) -> None:
     g = np.mgrid[slices] * 2 * np.pi / N
     points = torch.from_numpy(g.reshape(dim, -1)).to(device)
 
-    values = torch.randn(*points[0].shape, dtype=torch.complex128).to(device)
+    # batched values to test that functionality for these as well
+    values = torch.randn(3, *points[0].shape, dtype=torch.complex128).to(device)
 
     print("N is " + str(N))
     print("dim is " + str(dim))
@@ -34,17 +44,6 @@ def check_t2_ifft_undoes_t1(N: int, dim: int, device: str) -> None:
     np.testing.assert_allclose(values.cpu().numpy(), back.cpu().numpy(), atol=1e-4)
 
 
-Ns = [
-    5,
-    10,
-    15,
-    100,
-    101,
-]
-
-dims = [1, 2, 3]
-
-
 @pytest.mark.parametrize("N", Ns)
 @pytest.mark.parametrize("dim", dims)
 def test_t2_ifft_undoes_t1_forward_CPU(N, dim):
@@ -59,7 +58,8 @@ def check_t1_ifft_undoes_t2(N: int, dim: int, device: str) -> None:
     g = np.mgrid[slices] * 2 * np.pi / N
     points = torch.from_numpy(g.reshape(g.shape[0], -1)).to(device)
 
-    targets = torch.randn(*g[0].shape, dtype=torch.complex128).to(device)
+    # batched targets to test that functionality for these as well
+    targets = torch.randn(3, *g[0].shape, dtype=torch.complex128).to(device)
 
     print("N is " + str(N))
     print("dim is " + str(dim))

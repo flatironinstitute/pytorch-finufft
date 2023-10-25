@@ -539,6 +539,8 @@ def finuifft_type1(
     Equivalent to :func:`~pytorch_finufft.functional.finufft_type1`,
     but passing ``isign=1`` and dividing by the size of the output.
     """
+    if "isign" in finufftkwargs:
+        warnings.warn("finuifft_type1 recieved isign, which will be overwritten to 1")
     finufftkwargs["isign"] = 1
     res: torch.Tensor = finufft_type1(points, values, output_shape, **finufftkwargs)
     res = res / res.numel()
@@ -554,6 +556,8 @@ def finuifft_type2(
     Equivalent to :func:`~pytorch_finufft.functional.finufft_type2`,
     but passing ``isign=1`` and dividing by the size of the output.
     """
+    if "isign" in finufftkwargs:
+        warnings.warn("finuifft_type2 recieved isign, which will be overwritten to 1")
     finufftkwargs["isign"] = 1
     res: torch.Tensor = finufft_type2(points, targets, **finufftkwargs)
     res = res / res.numel()

@@ -538,6 +538,10 @@ def finuifft_type1(
     """
     Equivalent to :func:`~pytorch_finufft.functional.finufft_type1`,
     but passing ``isign=1`` and dividing by the size of the output.
+
+    This is intended to provide the inverse of
+    :func:`~pytorch_finufft.functional.finufft_type2`, such that
+    ``finuifft_type1(points, finuifft_type2(points, x))`` $\\approx$ ``x``.
     """
     if "isign" in finufftkwargs:
         warnings.warn("finuifft_type1 recieved isign, which will be overwritten to 1")
@@ -555,6 +559,10 @@ def finuifft_type2(
     """
     Equivalent to :func:`~pytorch_finufft.functional.finufft_type2`,
     but passing ``isign=1`` and dividing by the size of the output.
+
+    This is intended to provide the inverse of
+    :func:`~pytorch_finufft.functional.finufft_type1`, such that
+    ``finuifft_type2(points, finuifft_type1(points, x))`` $\\approx$ ``x``.
     """
     if "isign" in finufftkwargs:
         warnings.warn("finuifft_type2 recieved isign, which will be overwritten to 1")

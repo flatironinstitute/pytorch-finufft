@@ -10,7 +10,7 @@ pipeline {
       agent {
          dockerfile {
             filename 'ci/docker/Dockerfile-cuda12.0'
-            args '--gpus 1'
+            args '--gpus 2'
             label 'docker && v100'
          }
       }

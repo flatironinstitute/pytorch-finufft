@@ -9,7 +9,7 @@ pipeline {
     stage('CUDA Tests') {
       agent {
          dockerfile {
-            filename 'ci/docker/Dockerfile-cuda11.8'
+            filename 'ci/docker/Dockerfile-cuda12.0'
             args '--gpus 1'
             label 'docker && v100'
          }

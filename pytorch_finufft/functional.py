@@ -266,8 +266,6 @@ class FinufftType1(torch.autograd.Function):
             grad_values,
             None,
             None,
-            None,
-            None,
         )
 
 
@@ -383,13 +381,7 @@ class FinufftType2(torch.autograd.Function):
     @staticmethod
     def backward(  # type: ignore[override]
         ctx: Any, grad_output: torch.Tensor
-    ) -> Tuple[
-        Union[torch.Tensor, None],
-        Union[torch.Tensor, None],
-        None,
-        None,
-        None,
-    ]:
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs
@@ -450,9 +442,104 @@ class FinufftType2(torch.autograd.Function):
             grad_points,
             grad_targets,
             None,
-            None,
-            None,
         )
+
+
+class FinufftType3(torch.autograd.Function):
+    """
+    FINUFFT problem type 3
+    """
+
+    ISIGN_DEFAULT = -1  # note: FINUFFT default is 1
+    MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
+
+    @staticmethod
+    def setup_context(  # type: ignore[override]
+        ctx: Any,
+        inputs: Tuple[
+            torch.Tensor,
+            torch.Tensor,
+            torch.Tensor,
+            Optional[Dict[str, Union[int, float]]],
+        ],
+        output: Any,
+    ) -> None:
+        points, strengths, targets, finufftkwargs = inputs
+        if finufftkwargs is None:
+            finufftkwargs = {}
+        else:  # copy to avoid mutating caller's dictionary
+            finufftkwargs = finufftkwargs.copy()
+        ctx.save_for_backward(points, strengths, targets)
+        ctx.isign = finufftkwargs.pop("isign", FinufftType3.ISIGN_DEFAULT)
+        ctx.mode_ordering = finufftkwargs.pop("modeord", FinufftType3.MODEORD_DEFAULT)
+        ctx.finufftkwargs = finufftkwargs
+
+    @staticmethod
+    def forward(  # type: ignore[override]
+        points: torch.Tensor,
+        strengths: torch.Tensor,
+        targets: torch.Tensor,
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> torch.Tensor:
+        checks.check_devices(targets, strengths, points)
+        checks.check_dtypes(strengths, points, "Strengths")
+        checks.check_dtypes(strengths, targets, "Strengths")
+        # TODO size checks
+
+        if finufftkwargs is None:
+            finufftkwargs = dict()
+        else:
+            finufftkwargs = finufftkwargs.copy()
+
+        finufftkwargs.setdefault("isign", FinufftType3.ISIGN_DEFAULT)
+
+        modeord = finufftkwargs.pop("modeord", FinufftType3.MODEORD_DEFAULT)
+
+        points = torch.atleast_2d(points)
+        targets = torch.atleast_2d(targets)
+
+        ndim = points.shape[0]
+        npoints = points.shape[1]
+
+        if points.device.type != 'cpu':
+            raise NotImplementedError("Type 3 is not currently implemented for GPU")
+
+        if modeord:
+            strengths = batch_fftshift(strengths, ndim)
+
+        nufft_func = get_nufft_func(ndim, 3, points.device.type)
+        batch_dims = strengths.shape[:-1]
+
+        finufft_out = nufft_func(
+            *points,
+            strengths.reshape(-1, npoints),
+            *targets,
+            **finufftkwargs,
+        )
+        finufft_out = finufft_out.reshape(*batch_dims, targets.shape[-1])
+
+        return finufft_out
+
+    @staticmethod
+    def backward(  # type: ignore[override]
+        ctx: Any, grad_output: torch.Tensor
+    ) -> Tuple[Union[torch.Tensor, None], ...]:
+        _i_sign = ctx.isign
+        _mode_ordering = ctx.mode_ordering
+        finufftkwargs = ctx.finufftkwargs
+
+        points, strengths, targets = ctx.saved_tensors
+        points = torch.atleast_2d(points)
+        targets = torch.atleast_2d(targets)
+
+        device = points.device
+        ndim = points.shape[0]
+
+        grad_points = None
+        grad_strengths = None
+        grad_targets = None
+
+        return grad_points, grad_strengths, grad_targets, None
 
 
 def finufft_type1(
@@ -533,4 +620,14 @@ def finufft_type2(
         A ``[batch]xDxN`` tensor of values at the non-uniform points.
     """
     res: torch.Tensor = FinufftType2.apply(points, targets, finufftkwargs)
+    return res
+
+
+def finufft_type3(
+    points: torch.Tensor,
+    strengths: torch.Tensor,
+    targets: torch.Tensor,
+    **finufftkwargs: Union[int, float],
+) -> torch.Tensor:
+    res: torch.Tensor = FinufftType3.apply(points, strengths, targets, finufftkwargs)
     return res

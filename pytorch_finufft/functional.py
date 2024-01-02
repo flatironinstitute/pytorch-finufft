@@ -96,7 +96,7 @@ class FinufftType1(torch.autograd.Function):
     MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
 
     @staticmethod
-    def setup_context(  # type: ignore[override]
+    def setup_context(
         ctx: Any,
         inputs: Tuple[
             torch.Tensor, torch.Tensor, Any, Optional[Dict[str, Union[int, float]]]
@@ -275,7 +275,7 @@ class FinufftType2(torch.autograd.Function):
     MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
 
     @staticmethod
-    def setup_context(  # type: ignore[override]
+    def setup_context(
         ctx: Any,
         inputs: Tuple[
             torch.Tensor, torch.Tensor, Optional[Dict[str, Union[int, float]]]

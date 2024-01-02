@@ -12,7 +12,7 @@ authors = [
   {name = "Brian Ward", email="bward@flatironinstitute.org"},
 ]
 license = { text = "MIT" }
-dependencies = ["finufft>= 2.1", "torch >= 2", "numpy", "scipy"]
+dependencies = ["finufft>= 2.2", "torch >= 2", "numpy", "scipy"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",

@@ -101,12 +101,3 @@ norecursedirs = [
   ".git",
   "__pycache__",
 ]
-
-[tool.coverage.run]
-source = ["tests"]
-
-[coverage.paths]
-source = "pytorch_finufft"
-
-[coverage.run]
-branch = true

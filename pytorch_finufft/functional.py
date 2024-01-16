@@ -450,7 +450,7 @@ class FinufftType3(torch.autograd.Function):
     FINUFFT problem type 3
     """
 
-    ISIGN_DEFAULT = -1  # note: FINUFFT default is 1
+    ISIGN_DEFAULT = 1  # note: FINUFFT default is 1
     MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
 
     @staticmethod
@@ -483,8 +483,8 @@ class FinufftType3(torch.autograd.Function):
     ) -> torch.Tensor:
         checks.check_devices(targets, strengths, points)
         checks.check_dtypes(strengths, points, "Strengths")
-        checks.check_dtypes(strengths, targets, "Strengths")
-        # TODO size checks
+        checks.check_dtypes(strengths, targets, "Strengths", points_name="Targets")
+        checks.check_sizes_t3(points, strengths, targets)
 
         if finufftkwargs is None:
             finufftkwargs = dict()
@@ -493,22 +493,19 @@ class FinufftType3(torch.autograd.Function):
 
         finufftkwargs.setdefault("isign", FinufftType3.ISIGN_DEFAULT)
 
-        modeord = finufftkwargs.pop("modeord", FinufftType3.MODEORD_DEFAULT)
+        finufftkwargs.setdefault("modeord", FinufftType3.MODEORD_DEFAULT)
 
         points = torch.atleast_2d(points)
         targets = torch.atleast_2d(targets)
 
         ndim = points.shape[0]
         npoints = points.shape[1]
+        batch_dims = strengths.shape[:-1]
 
-        if points.device.type != 'cpu':
+        if points.device.type != "cpu":
             raise NotImplementedError("Type 3 is not currently implemented for GPU")
 
-        if modeord:
-            strengths = batch_fftshift(strengths, ndim)
-
         nufft_func = get_nufft_func(ndim, 3, points.device.type)
-        batch_dims = strengths.shape[:-1]
 
         finufft_out = nufft_func(
             *points,
@@ -629,5 +626,37 @@ def finufft_type3(
     targets: torch.Tensor,
     **finufftkwargs: Union[int, float],
 ) -> torch.Tensor:
+    """
+    Evaluates the Type 3 (nonuniform-to-nonuniform) NUFFT on the inputs.
+
+    This is a wrapper around :func:`finufft.nufft1d3`, :func:`finufft.nufft2d3`, and
+    :func:`finufft.nufft3d3` on CPU.
+
+    Note that this function is **not implemented** for GPUs at the time of writing.
+
+    Parameters
+    ----------
+    points : torch.Tensor
+        DxM tensor of locations of the non-uniform source points.
+        Points must lie in the range ``[-3pi, 3pi]``.
+    strengths: torch.Tensor
+        Complex-valued tensor of source strengths at the non-uniform points.
+        All dimensions except the final dimension are treated as batch
+        dimensions. The final dimension must have size ``M``.
+    targets : torch.Tensor
+        DxN tensor of locations of the non-uniform target points.
+    **finufftkwargs : int | float
+        Additional keyword arguments are forwarded to the underlying
+        FINUFFT functions. A few notable options are
+
+        - ``eps``: precision requested (default: ``1e-6``)
+        - ``modeord``: 0 for FINUFFT default, 1 for Pytorch default (default: ``1``)
+        - ``isign``: Sign of the exponent in the Fourier transform (default: ``-1``)
+
+    Returns
+    -------
+    torch.Tensor
+        A ``[batch]xN`` tensor of values at the target non-uniform points.
+    """
     res: torch.Tensor = FinufftType3.apply(points, strengths, targets, finufftkwargs)
     return res

@@ -96,7 +96,7 @@ class FinufftType1(torch.autograd.Function):
     MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
 
     @staticmethod
-    def setup_context(  # type: ignore[override]
+    def setup_context(
         ctx: Any,
         inputs: Tuple[
             torch.Tensor, torch.Tensor, Any, Optional[Dict[str, Union[int, float]]]
@@ -142,7 +142,7 @@ class FinufftType1(torch.autograd.Function):
         batch_dims = values.shape[:-1]
         finufft_out = nufft_func(
             *points,
-            values.reshape(-1, values.shape[-1]).squeeze(),
+            values.reshape(-1, values.shape[-1]),
             output_shape,
             **finufftkwargs,
         )
@@ -237,10 +237,8 @@ class FinufftType1(torch.autograd.Function):
             batched_values = values.reshape(nbatch, 1, values.shape[-1])
 
             ramped_grad_output = (
-                (coord_ramps * batched_grad_output * 1j * _i_sign)
-                .reshape(-1, *shape)
-                .squeeze()
-            )
+                coord_ramps * batched_grad_output * 1j * _i_sign
+            ).reshape(-1, *shape)
 
             backprop_ramp = (
                 nufft_func(*points, ramped_grad_output, isign=_i_sign, **finufftkwargs)
@@ -277,7 +275,7 @@ class FinufftType2(torch.autograd.Function):
     MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
 
     @staticmethod
-    def setup_context(  # type: ignore[override]
+    def setup_context(
         ctx: Any,
         inputs: Tuple[
             torch.Tensor, torch.Tensor, Optional[Dict[str, Union[int, float]]]
@@ -324,7 +322,7 @@ class FinufftType2(torch.autograd.Function):
         shape = targets.shape[-ndim:]
         finufft_out = nufft_func(
             *points,
-            targets.reshape(-1, *shape).squeeze(),
+            targets.reshape(-1, *shape),
             **finufftkwargs,
         )
         finufft_out = finufft_out.reshape(*batch_dims, npoints)
@@ -410,10 +408,8 @@ class FinufftType2(torch.autograd.Function):
 
             coord_ramps = coordinate_ramps(shape, device)
 
-            ramped_targets = (
-                (coord_ramps * batched_targets * 1j * _i_sign)
-                .reshape(-1, *shape)
-                .squeeze()  # squeeze to work around finufft issue#367
+            ramped_targets = (coord_ramps * batched_targets * 1j * _i_sign).reshape(
+                -1, *shape
             )
 
             backprop_ramp = (

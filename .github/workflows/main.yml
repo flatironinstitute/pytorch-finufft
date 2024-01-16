@@ -29,11 +29,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install .[dev]
+        python -m pip install -e .[dev]
 
     - name: Pytest
       run: |
-        pytest tests/ --cov
+        pytest tests/ --cov=pytorch_finufft
 
 
   lint:

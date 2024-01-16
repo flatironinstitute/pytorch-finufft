@@ -16,39 +16,8 @@ pipeline {
       }
       environment {
     HOME = "$WORKSPACE"
-    LIBRARY_PATH = "$WORKSPACE/finufft/build"
-    LD_LIBRARY_PATH = "$WORKSPACE/finufft/build"
       }
       steps {
-
-    // TODO - reconsider install strategy once finufft/cufinufft 2.2 is released
-  checkout scmGit(branches: [[name: '*/master']],
-                  extensions: [cloneOption(noTags: true, reference: '', shallow: true),
-                               [$class: 'RelativeTargetDirectory', relativeTargetDir: 'finufft'],
-                               cleanAfterCheckout()],
-                  userRemoteConfigs: [[url: 'https://github.com/flatironinstitute/finufft']])
-
-    sh '''#!/bin/bash -ex
-      nvidia-smi
-    '''
-    sh '''#!/bin/bash -ex
-      echo $HOME
-      ls
-    '''
-    sh label: "build CUFINUFFT", script: '''#!/bin/bash -ex
-        cd finufft
-        # v100 cuda arch
-        cuda_arch="70"
-        mkdir build
-        cd build
-        cmake .. -DFINUFFT_USE_CUDA=ON \
-                  -DFINUFFT_USE_CPU=OFF \
-                  -DFINUFFT_BUILD_TESTS=OFF \
-                  -DCMAKE_CUDA_ARCHITECTURES="$cuda_arch" \
-                  -DBUILD_TESTING=OFF \
-                  -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        cmake --build . -j 4
-    '''
 
     sh 'python3 -m venv $HOME'
     sh label: "set up virtual environment", script: '''#!/bin/bash -ex
@@ -56,13 +25,12 @@ pipeline {
       python3 -m pip install --upgrade pip
       # we could also move pytorch install inside docker
       python3 -m pip install "torch~=2.1.0" --index-url https://download.pytorch.org/whl/cu118
-      python3 -m pip install finufft/python/cufinufft
 
-      python3 -m pip install -e .[dev] # can make [dev,cuda] once cufinufft released?
+      python3 -m pip install -e .[dev,cuda]
     '''
     sh label: "run tests", script: '''#!/bin/bash -ex
       source $HOME/bin/activate
-      python3 -m pytest -k "cuda" tests/ --cov -v --error-for-skips
+      python3 -m pytest -k "cuda" tests/ --cov=pytorch_finufft -v --error-for-skips
     '''
       }
     }

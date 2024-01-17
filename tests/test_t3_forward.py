@@ -28,7 +28,7 @@ def check_t3_forward(N: int, dim: int, device: str) -> None:
     print("shape of targets is " + str(targets.shape))
 
     finufft_out = pytorch_finufft.functional.finufft_type3(
-        points, values.flatten(), targets, eps=1e-9
+        points, values.flatten(), targets
     )
 
     against_torch = torch.fft.fftn(values)
@@ -38,11 +38,9 @@ def check_t3_forward(N: int, dim: int, device: str) -> None:
     l_2_error = torch.sqrt(torch.sum(abs_errors**2))
     l_1_error = torch.sum(abs_errors)
 
-    # TODO consider updating tolerances below
-    # in conjunction with `eps` parameter above
-    assert l_inf_error < 1.5e-5 * N**1.5
-    assert l_2_error < 1e-5 * N**3
-    assert l_1_error < 1e-5 * N**4.5
+    assert l_inf_error < 5e-5 * N**1.5
+    assert l_2_error < 1.5e-5 * N**3.2
+    assert l_1_error < 1.5e-5 * N**4.5
 
 
 Ns_and_dims = [

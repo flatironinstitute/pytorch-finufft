@@ -132,8 +132,8 @@ def check_sizes_t3(
 
     if targets_dim != points_dim:
         raise ValueError(
-            "The points tensor and targets tensor must be of the same dimension!"
-            + f"Got {points_dim=} and {targets_dim=} instead"
+            "Points and targets must be of the same dimension!"
+            + f" Got {points_dim=} and {targets_dim=} instead"
         )
 
     if points_dim not in {1, 2, 3}:

@@ -10,11 +10,16 @@ def check_t3_forward(N: int, dim: int, device: str) -> None:
     Tests against implementations of the FFT by setting up a uniform grid
     over which to call FINUFFT through the API.
     """
+
     slices = tuple(slice(None, N) for _ in range(dim))
     g = np.mgrid[slices] * 2 * np.pi / N
     points = torch.from_numpy(g.reshape(dim, -1)).to(device)
     values = torch.randn(*g[0].shape, dtype=torch.complex128).to(device)
-    targets = points.clone()
+    targets = (
+        torch.from_numpy(np.mgrid[slices].astype(np.float64))
+        .reshape(dim, -1)
+        .to(device)
+    )
 
     print("N is " + str(N))
     print("dim is " + str(dim))
@@ -23,18 +28,18 @@ def check_t3_forward(N: int, dim: int, device: str) -> None:
     print("shape of targets is " + str(targets.shape))
 
     finufft_out = pytorch_finufft.functional.finufft_type3(
-        points,
-        values.flatten(),
-        targets,
+        points, values.flatten(), targets, eps=1e-9
     )
 
-    against_torch = torch.fft.fftn(values.reshape(g[0].shape))
+    against_torch = torch.fft.fftn(values)
 
     abs_errors = torch.abs(finufft_out - against_torch.flatten())
     l_inf_error = abs_errors.max()
     l_2_error = torch.sqrt(torch.sum(abs_errors**2))
     l_1_error = torch.sum(abs_errors)
 
+    # TODO consider updating tolerances below
+    # in conjunction with `eps` parameter above
     assert l_inf_error < 1.5e-5 * N**1.5
     assert l_2_error < 1e-5 * N**3
     assert l_1_error < 1e-5 * N**4.5

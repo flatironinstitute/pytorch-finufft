@@ -450,8 +450,7 @@ class FinufftType3(torch.autograd.Function):
     FINUFFT problem type 3
     """
 
-    ISIGN_DEFAULT = 1  # note: FINUFFT default is 1
-    MODEORD_DEFAULT = 1  # note: FINUFFT default is 0
+    ISIGN_DEFAULT = -1  # note: FINUFFT default is 1
 
     @staticmethod
     def setup_context(  # type: ignore[override]
@@ -471,7 +470,6 @@ class FinufftType3(torch.autograd.Function):
             finufftkwargs = finufftkwargs.copy()
         ctx.save_for_backward(points, strengths, targets)
         ctx.isign = finufftkwargs.pop("isign", FinufftType3.ISIGN_DEFAULT)
-        ctx.mode_ordering = finufftkwargs.pop("modeord", FinufftType3.MODEORD_DEFAULT)
         ctx.finufftkwargs = finufftkwargs
 
     @staticmethod
@@ -492,8 +490,6 @@ class FinufftType3(torch.autograd.Function):
             finufftkwargs = finufftkwargs.copy()
 
         finufftkwargs.setdefault("isign", FinufftType3.ISIGN_DEFAULT)
-
-        finufftkwargs.setdefault("modeord", FinufftType3.MODEORD_DEFAULT)
 
         points = torch.atleast_2d(points)
         targets = torch.atleast_2d(targets)
@@ -522,15 +518,14 @@ class FinufftType3(torch.autograd.Function):
         ctx: Any, grad_output: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, None], ...]:
         _i_sign = ctx.isign
-        _mode_ordering = ctx.mode_ordering
-        finufftkwargs = ctx.finufftkwargs
+        # finufftkwargs = ctx.finufftkwargs
 
         points, strengths, targets = ctx.saved_tensors
         points = torch.atleast_2d(points)
         targets = torch.atleast_2d(targets)
 
-        device = points.device
-        ndim = points.shape[0]
+        # device = points.device
+        # ndim = points.shape[0]
 
         grad_points = None
         grad_strengths = None

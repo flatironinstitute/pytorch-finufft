@@ -4,6 +4,8 @@ import torch
 
 import pytorch_finufft
 
+torch.manual_seed(45678)
+
 
 def check_t3_forward(N: int, dim: int, device: str) -> None:
     """
@@ -28,7 +30,7 @@ def check_t3_forward(N: int, dim: int, device: str) -> None:
     print("shape of targets is " + str(targets.shape))
 
     finufft_out = pytorch_finufft.functional.finufft_type3(
-        points, values.flatten(), targets
+        points, values.flatten(), targets, eps=1e-7
     )
 
     against_torch = torch.fft.fftn(values)

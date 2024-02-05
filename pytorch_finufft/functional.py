@@ -501,7 +501,7 @@ class FinufftType3(torch.autograd.Function):
         if points.device.type != "cpu":
             raise NotImplementedError("Type 3 is not currently implemented for GPU")
 
-        nufft_func = get_nufft_func(ndim, 3, points.device.type)
+        nufft_func = get_nufft_func(ndim, 3, points.device)
 
         finufft_out = nufft_func(
             *points,

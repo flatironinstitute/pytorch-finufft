@@ -453,7 +453,7 @@ class FinufftType3(torch.autograd.Function):
     ISIGN_DEFAULT = -1  # note: FINUFFT default is 1
 
     @staticmethod
-    def setup_context(  # type: ignore[override]
+    def setup_context(
         ctx: Any,
         inputs: Tuple[
             torch.Tensor,

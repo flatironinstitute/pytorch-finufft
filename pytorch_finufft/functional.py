@@ -383,7 +383,13 @@ class FinufftType2(torch.autograd.Function):
     @staticmethod
     def backward(  # type: ignore[override]
         ctx: Any, grad_output: torch.Tensor
-    ) -> Tuple[Union[torch.Tensor, None], Union[torch.Tensor, None], None, None, None,]:
+    ) -> Tuple[
+        Union[torch.Tensor, None],
+        Union[torch.Tensor, None],
+        None,
+        None,
+        None,
+    ]:
         _i_sign = ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs

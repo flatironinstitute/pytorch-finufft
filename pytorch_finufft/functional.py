@@ -2,6 +2,7 @@
 Implementations of the corresponding Autograd functions
 """
 
+import functools
 import warnings
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
@@ -36,12 +37,16 @@ newaxis = None
 
 
 def get_nufft_func(
-    dim: int, nufft_type: int, device_type: str
+    dim: int, nufft_type: int, device: torch.device
 ) -> Callable[..., torch.Tensor]:
-    if device_type == "cuda":
+    if device.type == "cuda":
         if not CUFINUFFT_AVAIL:
             raise RuntimeError("CUDA device requested but cufinufft failed to import")
-        return getattr(cufinufft, f"nufft{dim}d{nufft_type}")  # type: ignore
+        # note: in the future, cufinufft may figure out gpu_device_id on its own
+        # see: https://github.com/flatironinstitute/finufft/issues/420
+        return functools.partial(
+            getattr(cufinufft, f"nufft{dim}d{nufft_type}"), gpu_device_id=device.index
+        )
 
     if not FINUFFT_AVAIL:
         raise RuntimeError("CPU device requested but finufft failed to import")
@@ -137,7 +142,7 @@ class FinufftType1(torch.autograd.Function):
         # pop because cufinufft doesn't support modeord
         modeord = finufftkwargs.pop("modeord", FinufftType1.MODEORD_DEFAULT)
 
-        nufft_func = get_nufft_func(ndim, 1, points.device.type)
+        nufft_func = get_nufft_func(ndim, 1, points.device)
 
         batch_dims = values.shape[:-1]
         finufft_out = nufft_func(
@@ -217,7 +222,7 @@ class FinufftType1(torch.autograd.Function):
         grads_points = None
         grad_values = None
 
-        nufft_func = get_nufft_func(ndim, 2, device.type)
+        nufft_func = get_nufft_func(ndim, 2, device)
 
         if any(ctx.needs_input_grad):
             if _mode_ordering:
@@ -317,7 +322,7 @@ class FinufftType2(torch.autograd.Function):
         if modeord:
             targets = batch_fftshift(targets, ndim)
 
-        nufft_func = get_nufft_func(ndim, 2, points.device.type)
+        nufft_func = get_nufft_func(ndim, 2, points.device)
         batch_dims = targets.shape[:-ndim]
         shape = targets.shape[-ndim:]
         finufft_out = nufft_func(
@@ -404,7 +409,7 @@ class FinufftType2(torch.autograd.Function):
 
         if ctx.needs_input_grad[0]:
             # wrt. points
-            nufft_func = get_nufft_func(ndim, 2, points.device.type)
+            nufft_func = get_nufft_func(ndim, 2, points.device)
 
             coord_ramps = coordinate_ramps(shape, device)
 
@@ -422,7 +427,7 @@ class FinufftType2(torch.autograd.Function):
 
         if ctx.needs_input_grad[1]:
             # wrt. targets
-            nufft_func = get_nufft_func(ndim, 1, points.device.type)
+            nufft_func = get_nufft_func(ndim, 1, points.device)
 
             grad_targets = nufft_func(
                 *points,

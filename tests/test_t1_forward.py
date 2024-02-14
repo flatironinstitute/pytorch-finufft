@@ -69,3 +69,9 @@ def test_t1_forward_CPU(N, dim) -> None:
 @pytest.mark.parametrize("N, dim", Ns_and_dims)
 def test_t1_forward_cuda(N, dim) -> None:
     check_t1_forward(N, dim, "cuda")
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="require multiple GPUs")
+def test_t1_forward_cuda_device_1() -> None:
+    # added after https://github.com/flatironinstitute/pytorch-finufft/issues/103
+    check_t1_forward(3, 1, "cuda:1")

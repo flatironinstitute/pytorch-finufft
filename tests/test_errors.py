@@ -46,6 +46,37 @@ def test_t2_mismatch_cuda_index() -> None:
         pytorch_finufft.functional.finufft_type2(points, targets)
 
 
+def test_t3_mismatch_device_cuda_cpu() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((2, 10), dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="Some tensors are not on the same device"):
+        pytorch_finufft.functional.finufft_type3(points.to("cuda:0"), values, targets)
+
+    with pytest.raises(ValueError, match="Some tensors are not on the same device"):
+        pytorch_finufft.functional.finufft_type3(points, values.to("cuda:0"), targets)
+
+    with pytest.raises(ValueError, match="Some tensors are not on the same device"):
+        pytorch_finufft.functional.finufft_type3(points, values, targets.to("cuda:0"))
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="require multiple GPUs")
+def test_t3_mismatch_cuda_index() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64).to("cuda:0")
+    values = torch.randn(10, dtype=torch.complex128).to("cuda:0")
+    targets = torch.rand((2, 10), dtype=torch.float64).to("cuda:0")
+
+    with pytest.raises(ValueError, match="Some tensors are not on the same device"):
+        pytorch_finufft.functional.finufft_type3(points.to("cuda:1"), values, targets)
+
+    with pytest.raises(ValueError, match="Some tensors are not on the same device"):
+        pytorch_finufft.functional.finufft_type3(points, values.to("cuda:1"), targets)
+
+    with pytest.raises(ValueError, match="Some tensors are not on the same device"):
+        pytorch_finufft.functional.finufft_type3(points, values, targets.to("cuda:1"))
+
+
 # dtypes
 
 
@@ -171,6 +202,101 @@ def test_t2_mismatch_precision() -> None:
         pytorch_finufft.functional.finufft_type2(points, targets)
 
 
+def test_t3_non_complex_targets() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64)
+    values = torch.randn(10, dtype=torch.float64)
+    targets = torch.rand((2, 10), dtype=torch.float64)
+
+    with pytest.raises(
+        TypeError,
+        match="Strengths must have a dtype of torch.complex64 or torch.complex128",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_half_complex_targets() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64)
+    targets = torch.rand((2, 10), dtype=torch.float64)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        values = torch.randn(10, dtype=torch.complex32)
+
+    with pytest.raises(
+        TypeError,
+        match="Strengths must have a dtype of torch.complex64 or torch.complex128",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_non_real_points() -> None:
+    points = torch.rand((2, 10), dtype=torch.complex128)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((2, 10), dtype=torch.float64)
+
+    with pytest.raises(
+        TypeError,
+        match="Points must have a dtype of torch.float64 as strengths has "
+        "a dtype of torch.complex128",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_non_real_targets() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((2, 10), dtype=torch.complex128)
+
+    with pytest.raises(
+        TypeError,
+        match="Targets must have a dtype of torch.float64 as strengths has "
+        "a dtype of torch.complex128",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_mismatch_precision() -> None:
+    points = torch.rand((2, 10), dtype=torch.float32)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((2, 10), dtype=torch.float64)
+
+    with pytest.raises(
+        TypeError,
+        match="Points must have a dtype of torch.float64 as strengths has "
+        "a dtype of torch.complex128",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+    points = points.to(torch.float64)
+    targets = targets.to(torch.float32)
+
+    with pytest.raises(
+        TypeError,
+        match="Targets must have a dtype of torch.float64 as strengths has "
+        "a dtype of torch.complex128",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+    values = values.to(torch.complex64)
+
+    with pytest.raises(
+        TypeError,
+        match="Points must have a dtype of torch.float32 as strengths has "
+        "a dtype of torch.complex64",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+    points = points.to(torch.float32)
+    targets = targets.to(torch.float64)
+
+    with pytest.raises(
+        TypeError,
+        match="Targets must have a dtype of torch.float32 as strengths has "
+        "a dtype of torch.complex64",
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
 # sizes
 
 
@@ -270,6 +396,51 @@ def test_t2_mismatch_dims() -> None:
         ValueError, match="For type 2 3d FINUFFT, targets must be at least a 3d tensor"
     ):
         pytorch_finufft.functional.finufft_type2(points, targets)
+
+
+def test_t3_points_targets_4d() -> None:
+    points = torch.rand((4, 10), dtype=torch.float64)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((4, 10), dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="Points and targets can be at most 3d, got"):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_points_targets_mismatch_dims() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((3, 10), dtype=torch.float64)
+
+    with pytest.raises(
+        ValueError, match="Points and targets must be of the same dimension"
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_too_many_dims() -> None:
+    points = torch.rand((1, 4, 10), dtype=torch.float64)
+    values = torch.randn(10, dtype=torch.complex128)
+    targets = torch.rand((1, 4, 10), dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="The points tensor must be 1d or 2d"):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+    points = torch.rand((2, 10), dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="The targets tensor must be 1d or 2d"):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
+
+
+def test_t3_mismatch_dims() -> None:
+    points = torch.rand((2, 10), dtype=torch.float64)
+    values = torch.randn(11, dtype=torch.complex128)
+    targets = torch.rand((2, 12), dtype=torch.float64)
+
+    with pytest.raises(
+        ValueError, match="The same number of points and strengths must be supplied"
+    ):
+        pytorch_finufft.functional.finufft_type3(points, values, targets)
 
 
 # dependencies

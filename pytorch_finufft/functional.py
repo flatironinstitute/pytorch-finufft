@@ -120,7 +120,7 @@ class FinufftType1(torch.autograd.Function):
         ctx.finufftkwargs = finufftkwargs
 
     @staticmethod
-    def forward(  # type: ignore[override]
+    def forward(  # type: ignore
         points: torch.Tensor,
         values: torch.Tensor,
         output_shape: Union[int, Tuple[int], Tuple[int, int], Tuple[int, int, int]],
@@ -298,7 +298,7 @@ class FinufftType2(torch.autograd.Function):
         ctx.finufftkwargs = finufftkwargs
 
     @staticmethod
-    def forward(  # type: ignore[override]
+    def forward(  # type: ignore
         points: torch.Tensor,
         targets: torch.Tensor,
         finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,

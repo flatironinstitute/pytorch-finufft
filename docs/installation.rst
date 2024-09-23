@@ -6,7 +6,7 @@ Pre-requistes
 -------------
 
 Pytorch-FINUFFT requires either ``finufft`` *and/or* ``cufinufft``
-2.1.0 or greater.
+2.2.0 or greater.
 
 Note that currently, this version of ``cufinufft`` is unreleased
 and can only be installed from source. See the relevant installation pages for
@@ -32,4 +32,19 @@ from source by running
 Installation from PyPI
 ----------------------
 
-TBD.
+Pytorch-FINUFFT is available on PyPI and can be installed with
+
+.. code-block:: bash
+
+    pip install pytorch-finufft
+
+which will also try to install compatible versions of torch and finufft.
+
+You can also run
+
+.. code-block:: bash
+
+    pip install pytorch-finufft[cuda]
+
+to additionally install cufinufft.
+

@@ -21,7 +21,9 @@ def check_devices(*tensors: torch.Tensor) -> None:
             )
 
 
-def check_dtypes(data: torch.Tensor, points: torch.Tensor, name: str) -> None:
+def check_dtypes(
+    data: torch.Tensor, points: torch.Tensor, name: str, points_name: str = "Points"
+) -> None:
     """
     Checks that data is complex-valued
     and that points is real-valued of the same precision
@@ -38,8 +40,8 @@ def check_dtypes(data: torch.Tensor, points: torch.Tensor, name: str) -> None:
 
     if points.dtype is not real_dtype:
         raise TypeError(
-            f"Points must have a dtype of {real_dtype} as {name.lower()} has a "
-            f"dtype of {complex_dtype}"
+            f"{points_name} must have a dtype of {real_dtype} as {name.lower()} has a "
+            f"dtype of {complex_dtype}, but got {points.dtype} instead"
         )
 
 
@@ -102,3 +104,45 @@ def check_sizes_t2(targets: torch.Tensor, points: torch.Tensor) -> None:
             f"For type 2 {points_dim}d FINUFFT, targets must be at "
             f"least a {points_dim}d tensor"
         )
+
+
+def check_sizes_t3(
+    points: torch.Tensor, strengths: torch.Tensor, targets: torch.Tensor
+) -> None:
+    """
+    Checks that targets and points are of the same dimension.
+    This is used in type3.
+    """
+    points_len = len(points.shape)
+    targets_len = len(targets.shape)
+
+    if points_len == 1:
+        points_dim = 1
+    elif points_len == 2:
+        points_dim = points.shape[0]
+    else:
+        raise ValueError("The points tensor must be 1d or 2d")
+
+    if targets_len == 1:
+        targets_dim = 1
+    elif targets_len == 2:
+        targets_dim = targets.shape[0]
+    else:
+        raise ValueError("The targets tensor must be 1d or 2d")
+
+    if targets_dim != points_dim:
+        raise ValueError(
+            "Points and targets must be of the same dimension!"
+            + f" Got {points_dim=} and {targets_dim=} instead"
+        )
+
+    if points_dim not in {1, 2, 3}:
+        raise ValueError(
+            f"Points and targets can be at most 3d, got {points_dim} instead"
+        )
+
+    n_points = points.shape[-1]
+    n_strengths = strengths.shape[-1]
+
+    if n_points != n_strengths:
+        raise ValueError("The same number of points and strengths must be supplied")

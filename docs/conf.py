@@ -65,7 +65,7 @@ intersphinx_mapping = {
         None,
     ),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "torch": ("https://pytorch.org/docs/master/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
     "finufft": ("https://finufft.readthedocs.io/en/latest/", None),
 }
 

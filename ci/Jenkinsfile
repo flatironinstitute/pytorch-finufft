@@ -24,7 +24,7 @@ pipeline {
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
       # we could also move pytorch install inside docker
-      python3 -m pip install "torch~=2.1.0" --index-url https://download.pytorch.org/whl/cu118
+      python3 -m pip install torch
 
       python3 -m pip install -e .[dev,cuda]
     '''

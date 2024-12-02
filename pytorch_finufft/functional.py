@@ -472,7 +472,7 @@ def finufft_type1(
     ----------
     points : torch.Tensor
         DxN tensor of locations of the non-uniform points.
-        Points must lie in the range ``[-3pi, 3pi]``.
+        Points should lie in the range ``[-pi, pi]``, values outside will be folded.
     values : torch.Tensor
         Complex-valued tensor of values at the non-uniform points.
         All dimensions except the final dimension are treated as batch
@@ -514,7 +514,7 @@ def finufft_type2(
     ----------
     points : torch.Tensor
         DxN tensor of locations of the non-uniform points.
-        Points must lie in the range ``[-3pi, 3pi]``.
+        Points should lie in the range ``[-pi, pi]``, values outside will be folded
     targets : torch.Tensor
         Complex-valued tensor of Fourier modes to evaluate at the points.
         The final D dimensions must contain the Fourier modes, and any

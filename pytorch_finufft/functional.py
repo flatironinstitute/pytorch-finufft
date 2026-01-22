@@ -48,8 +48,6 @@ def get_nufft_func(
             getattr(cufinufft, f"nufft{dim}d{nufft_type}"), gpu_device_id=device.index
         )
 
-    if not FINUFFT_AVAIL:
-        raise RuntimeError("CPU device requested but finufft failed to import")
     # CPU needs extra work to go to/from torch and numpy
     finufft_func = getattr(finufft, f"nufft{dim}d{nufft_type}")
 
@@ -498,9 +496,6 @@ class FinufftType3(torch.autograd.Function):
         npoints = points.shape[1]
         batch_dims = strengths.shape[:-1]
 
-        if points.device.type != "cpu":
-            raise NotImplementedError("Type 3 is not currently implemented for GPU")
-
         nufft_func = get_nufft_func(ndim, 3, points.device)
 
         finufft_out = nufft_func(
@@ -514,22 +509,136 @@ class FinufftType3(torch.autograd.Function):
         return finufft_out
 
     @staticmethod
+    def vmap(
+        info: Any,
+        in_dims: Tuple[Optional[int], ...],
+        points: torch.Tensor,
+        strengths: torch.Tensor,
+        targets: torch.Tensor,
+        finufftkwargs: Optional[Dict[str, Union[int, float]]] = None,
+    ) -> Tuple[torch.Tensor, int]:
+        batch_points, batch_strengths, batch_targets, *_ = in_dims
+        if batch_strengths is not None:
+            strengths = strengths.movedim(batch_strengths, 0)
+
+        if batch_points is not None and batch_targets is not None:
+            # need a for-loop here
+            points = points.movedim(batch_points, 0)
+            targets = targets.movedim(batch_targets, 0)
+            if batch_strengths is not None:
+                output = torch.stack(
+                    [
+                        FinufftType3.apply(
+                            points[i],
+                            strengths[i],
+                            targets[i],
+                            finufftkwargs,
+                        )
+                        for i in range(info.batch_size)
+                    ],
+                    dim=0,
+                )
+            else:
+                output = torch.stack(
+                    [
+                        FinufftType3.apply(
+                            points[i],
+                            strengths,
+                            targets[i],
+                            finufftkwargs,
+                        )
+                        for i in range(info.batch_size)
+                    ],
+                    dim=0,
+                )
+        else:
+            output = FinufftType3.apply(points, strengths, targets, finufftkwargs)
+
+        return output, 0
+
+    @staticmethod
     def backward(  # type: ignore[override]
         ctx: Any, grad_output: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, None], ...]:
         _i_sign = ctx.isign
-        # finufftkwargs = ctx.finufftkwargs
+        finufftkwargs = ctx.finufftkwargs
 
         points, strengths, targets = ctx.saved_tensors
         points = torch.atleast_2d(points)
         targets = torch.atleast_2d(targets)
 
-        # device = points.device
-        # ndim = points.shape[0]
+        device = points.device
+        ndim = points.shape[0]
 
         grad_points = None
         grad_strengths = None
         grad_targets = None
+
+        nufft_func = get_nufft_func(ndim, 3, device)
+
+        if any(ctx.needs_input_grad):
+            # group together batched dimensions, if any
+            shape = grad_output.shape[-1]
+            batch_dims = grad_output.shape[:-1]
+            batched_grad_output = grad_output.reshape(-1, 1, shape)
+            nbatch = batched_grad_output.shape[0]
+            batched_outputs = grad_output.reshape(nbatch, 1, grad_output.shape[-1])
+
+        if ctx.needs_input_grad[0]:
+            # wrt points
+            coord_ramps = targets
+
+            batched_strengths = strengths.reshape(nbatch, 1, strengths.shape[-1])
+
+            ramped_grad_output = (
+                coord_ramps * batched_grad_output * 1j * _i_sign * (-1)
+            ).reshape(-1, shape)
+
+            backprop_ramp = (
+                nufft_func(
+                    *targets,
+                    ramped_grad_output,
+                    *points,
+                    isign=-_i_sign,
+                    **finufftkwargs,
+                )
+                .conj()
+                .reshape(nbatch, ndim, -1)
+            )
+
+            grad_points = (backprop_ramp * batched_strengths).real.sum(dim=0)
+
+        if ctx.needs_input_grad[1]:
+            grad_strengths = nufft_func(
+                *targets,
+                batched_grad_output.squeeze(),
+                *points,
+                isign=(-1) * _i_sign,
+                **finufftkwargs,
+            ).reshape(*batch_dims, -1)
+
+        if ctx.needs_input_grad[2]:
+            # wrt. targets
+            coord_ramps = points
+
+            batched_strengths = strengths.reshape(nbatch, 1, strengths.shape[-1])
+            ramped_strengths = (coord_ramps * batched_strengths * 1j * _i_sign).reshape(
+                -1, points.shape[-1]
+            )
+
+            backprop_ramp = (
+                nufft_func(
+                    *points,
+                    ramped_strengths,
+                    *targets,
+                    isign=_i_sign,
+                    **finufftkwargs,
+                )
+                .conj()
+                .reshape(nbatch, ndim, -1)
+            )
+
+            grad_targets = (backprop_ramp * batched_outputs).real.sum(dim=0)
 
         return grad_points, grad_strengths, grad_targets, None
 

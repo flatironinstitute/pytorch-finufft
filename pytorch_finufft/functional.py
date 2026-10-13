@@ -211,7 +211,9 @@ class FinufftType1(torch.autograd.Function):
     ) -> Tuple[Union[torch.Tensor, None], ...]:
         _i_sign = -1 * ctx.isign
         _mode_ordering = ctx.mode_ordering
-        finufftkwargs = ctx.finufftkwargs
+        finufftkwargs = ctx.finufftkwargs.copy()
+        if finufftkwargs["gpu_method"] > 1:
+            finufftkwargs["gpu_method"] = 0
 
         points, values = ctx.saved_tensors
         points = torch.atleast_2d(points)

@@ -212,7 +212,7 @@ class FinufftType1(torch.autograd.Function):
         _i_sign = -1 * ctx.isign
         _mode_ordering = ctx.mode_ordering
         finufftkwargs = ctx.finufftkwargs.copy()
-        if finufftkwargs["gpu_method"] > 1:
+        if "gpu_method" in finufftkwargs and finufftkwargs["gpu_method"] > 1:
             finufftkwargs["gpu_method"] = 0
 
         points, values = ctx.saved_tensors
